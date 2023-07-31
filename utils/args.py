@@ -29,13 +29,13 @@ def get_args_parser():
     # Few-shot parameters (Mini-ImageNet & CIFAR-FS)
     parser.add_argument("--nClsEpisode", default=5, type=int,
                         help="Number of categories in each episode.")
-    parser.add_argument("--nSupport", default=1, type=int,
+    parser.add_argument("--nSupport", default=5, type=int,
                         help="Number of samples per category in the support set.")
-    parser.add_argument("--nQuery", default=15, type=int,
+    parser.add_argument("--nQuery", default=10, type=int,
                         help="Number of samples per category in the query set.")
     parser.add_argument("--nValEpisode", default=120, type=int,
                         help="Number of episodes for validation.")
-    parser.add_argument("--nEpisode", default=2000, type=int,
+    parser.add_argument("--nEpisode", default=100, type=int,
                         help="Number of episodes for training / testing.")
 
     # MetaDataset parameters

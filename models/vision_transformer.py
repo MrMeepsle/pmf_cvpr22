@@ -20,6 +20,7 @@ def drop_path(x, drop_prob: float = 0., training: bool = False):
 class DropPath(nn.Module):
     """Drop paths (Stochastic Depth) per sample  (when applied in main path of residual blocks).
     """
+
     def __init__(self, drop_prob=None):
         super(DropPath, self).__init__()
         self.drop_prob = drop_prob
@@ -64,11 +65,17 @@ class Attention(nn.Module):
         qkv = self.qkv(x).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
         q, k, v = qkv[0], qkv[1], qkv[2]
 
-        attn = (q @ k.transpose(-2, -1)) * self.scale
+        # Hacks, put heavy calculations aside to second GPU, then back to first GPU if issues arise again.
+        # attn = q.cuda(1) @ k.transpose(-2, -1).cuda(1) * self.scale
+        attn = q @ k.transpose(-2, -1) * self.scale
         attn = attn.softmax(dim=-1)
         attn = self.attn_drop(attn)
 
-        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x = (attn @ v)
+        # x = x.cuda(0)
+        # attn = attn.cuda(0)
+        x = x.transpose(1, 2)
+        x = x.reshape(B, N, C)
         x = self.proj(x)
         x = self.proj_drop(x)
         return x, attn
@@ -98,6 +105,7 @@ class Block(nn.Module):
 class PatchEmbed(nn.Module):
     """ Image to Patch Embedding
     """
+
     def __init__(self, img_size=224, patch_size=16, in_chans=3, embed_dim=768):
         super().__init__()
         num_patches = (img_size // patch_size) * (img_size // patch_size)
@@ -115,6 +123,7 @@ class PatchEmbed(nn.Module):
 
 class VisionTransformer(nn.Module):
     """ Vision Transformer """
+
     def __init__(self, img_size=[224], patch_size=16, in_chans=3, num_classes=0, embed_dim=768, depth=12,
                  num_heads=12, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop_rate=0., attn_drop_rate=0.,
                  drop_path_rate=0., norm_layer=nn.LayerNorm, **kwargs):
@@ -189,7 +198,7 @@ class VisionTransformer(nn.Module):
         x = x + self.interpolate_pos_encoding(x, w, h)
 
         if ada_token is not None:
-            ada_tokens = ada_token.expand(B, -1, -1) # B, p, d
+            ada_tokens = ada_token.expand(B, -1, -1)  # B, p, d
             x = torch.cat((x, ada_tokens), dim=1)
 
         return self.pos_drop(x)

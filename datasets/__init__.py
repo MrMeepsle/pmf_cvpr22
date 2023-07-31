@@ -15,7 +15,7 @@ from .meta_dataset.utils import Split
 def get_sets(args):
     if args.dataset == 'cifar_fs':
         from .cifar_fs import dataset_setting
-    if args.dataset == 'custom':
+    elif args.dataset == 'custom':
         from .custom import dataset_setting
     elif args.dataset == 'cifar_fs_elite':  # + elite data augmentation
         from .cifar_fs_elite import dataset_setting
