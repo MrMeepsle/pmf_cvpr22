@@ -41,13 +41,15 @@ def dataset_setting(nSupport, img_size=80):
     episodeJson = './data/Mini-ImageNet/val1000Episode_5_way_1_shot.json' if nSupport == 1 \
         else './data/Mini-ImageNet/val1000Episode_5_way_5_shot.json'
 
-    print("getting mean pixel values")
-    mean, std = get_mean_pixel_values([trainDir, valDir, testDir])
-    print("retrieved mean pixel values")
-    mean = [x / 255.0 for x in mean]
-    std = [x / 255.0 for x in std]
-    print("mean =", *mean)
-    print("std = ", *std)
+    # print("getting mean pixel values")
+    # mean, std = get_mean_pixel_values([trainDir, valDir, testDir])
+    # print("retrieved mean pixel values")
+    # mean = [x / 255.0 for x in mean]
+    # std = [x / 255.0 for x in std]
+    # print("mean =", *mean)
+    # print("std = ", *std)
+    mean = [0.3528, 0.4193, 0.4640]
+    std = [0.2542, 0.2605, 0.2740]
     normalize = transforms.Normalize(mean=mean, std=std)
     trainTransform = transforms.Compose(
         [transforms.RandomResizedCrop((img_size, img_size), scale=(0.05, 1.0)),  # Is this necessary?

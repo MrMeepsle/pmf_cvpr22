@@ -23,7 +23,7 @@ class CustomDataset(Dataset):
         for root, d_names, f_names in os.walk(data_dir):
             print(root)
             for f in f_names:
-                if f.endwith(".jpg"):
+                if f.endswith(".jpg") or f.endswith(".png"):
                     self.data.append(os.path.join(root, f))
         print(len(self.data))
 
@@ -31,8 +31,7 @@ class CustomDataset(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        img_path = os.path.join(self.data_dir, self.data[idx])
-        image = cv2.imread(img_path, cv2.COLOR_BGR2RGB)
+        image = cv2.imread(self.data[idx], cv2.COLOR_BGR2RGB)
 
         # augmentations
         if self.transform is not None:
