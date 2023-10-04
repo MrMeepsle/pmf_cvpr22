@@ -38,8 +38,8 @@ def dataset_setting(nSupport, img_size=80):
     trainDir = './data/PMF_dataset/train/'
     valDir = './data/PMF_dataset/validation/'
     testDir = './data/PMF_dataset/test/'
-    episodeJson = './data/Mini-ImageNet/val1000Episode_5_way_1_shot.json' if nSupport == 1 \
-        else './data/Mini-ImageNet/val1000Episode_5_way_5_shot.json'
+    episodeJson = './data/PMF_dataset/val1000Episode_5_way_1_shot.json' if nSupport == 1 \
+        else './data/PMF_dataset/val1000Episode_5_way_5_shot.json'
 
     # print("getting mean pixel values")
     # mean, std = get_mean_pixel_values([trainDir, valDir, testDir])
