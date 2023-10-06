@@ -3,7 +3,7 @@
 #SBATCH --job-name="pmf_job_1"
 #SBATCH --account=education-3me-msc-ro
 #SBATCH --partition=gpu
-#SBATCH --time=23:59:00
+#SBATCH --time=11:00:00
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=12
 #SBATCH --gpus-per-task=1
@@ -11,6 +11,8 @@
 
 module load miniconda3/4.12.0
 conda activate pmf
+export shots=5
+export queries=7
 
 srun python --version
-srun python main.py --output outputs/5way-5shot-10-query --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10
+srun python main.py --output outputs/5way-${shots}shot-${queries}-query --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10
