@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#SBATCH --job-name="3S-4Q-pmf"
+#SBATCH --job-name="3S-2Q-pmf"
 #SBATCH --account=education-3me-msc-ro
 #SBATCH --partition=gpu
 #SBATCH --time=11:00:00
@@ -12,7 +12,7 @@
 module load miniconda3/4.12.0
 conda activate pmf
 export shots=3
-export queries=4
+export queries=2
 
 srun python --version
 srun python main.py --output outputs/5way-${shots}shot-${queries}-query --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10
