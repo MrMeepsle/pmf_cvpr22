@@ -50,7 +50,8 @@ def train_one_epoch(data_loader: Iterable,
             output = model(SupportTensor, SupportLabel, x)
 
         output = output.view(x.shape[0] * x.shape[1], -1)
-        y = y.view(-1)
+        y = y.view(x.shape[0] * x.shape[1], -1)
+
         loss = criterion(output, y)
         loss_value = loss.item()
 
