@@ -13,31 +13,34 @@ module load miniconda3/4.12.0
 conda activate pmf
 
 srun python --version
-export folder=5way-5shot-7-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-5shot-4-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-5shot-2-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-5shot-1-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-3shot-10-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-3shot-7-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-3shot-4-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-3shot-2-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-3shot-1-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-1shot-10-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-1shot-7-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-1shot-4-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-1shot-2-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
-export folder=5way-1shot-1-query
-srun python main.py --output outputs/test_${folder} --resume outputs/${folder}/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport 5 --nQuery 10 --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export shots=5
+export queries=7
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export queries=4
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export queries=2
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export queries=1
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export shots=3
+export queries=10
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export queries=7
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export queries=4
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export queries=2
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export queries=1
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export shots=1
+export queries=10
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export queries=7
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export queries=4
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export queries=2
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
+export queries=1
+srun python main.py --output outputs/test_5way-${shots}shot-$queries --resume outputs/5way-${shots}shot-$queries/best.pth --dataset custom --epoch 100 --arch dino_small_patch16 --device cuda:0 --fp16 --nClsEpisode 5 --nSupport ${shots} --nQuery ${queries} --nEpisode 2000 --sched cosine --lr 5e-5 --warmup-lr 1e-6 --min-lr 1e-6 --warmup-epochs 5 --num_workers 10 --eval
