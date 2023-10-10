@@ -123,9 +123,7 @@ def accuracy(output, original_label, treshold=0.5):
     if above treshold, return top-1 accuracy, if under treshold, class should be 0.
     Could be improved, but works for now
     """
-    softmax = torch.nn.Softmax(dim=1)
-    predicted_labels = softmax(output)
-    values, argmax = torch.max(predicted_labels, dim=1)
+    values, argmax = torch.max(output, dim=1)
     class_indexes = values >= treshold
     non_class_indexes = ~class_indexes
     vals, amax = torch.max(original_label, dim=1)
