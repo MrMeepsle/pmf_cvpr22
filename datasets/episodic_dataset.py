@@ -82,6 +82,7 @@ class EpisodeDataset(data.Dataset):
         """
         # select nCls from clsList
         clsEpisode = np.random.choice(self.clsList, self.nCls, replace=False)
+        # print(clsEpisode)
         for i, cls in enumerate(clsEpisode):
             clsPath = os.path.join(self.imgDir, cls)
             imgList = os.listdir(clsPath)
@@ -140,13 +141,23 @@ class EpisodeJSONDataset(data.Dataset):
 
         self.tensorSupport = floatType(self.nCls * self.nSupport, 3, inputW, inputH)
         self.labelSupport = intType(self.nCls * self.nSupport)
-        self.tensorQuery = floatType(self.nCls * self.nQuery, 3, inputW, inputH)
-        self.labelQuery = intType(self.nCls * self.nQuery)
-
+        self.tensorQuery = floatType((self.nCls + 1) * self.nQuery, 3, inputW, inputH)
+        self.labelQuery = torch.zeros((self.nCls + 1) * self.nQuery, self.nCls)
         self.imgTensor = floatType(3, inputW, inputH)
+
         for i in range(self.nCls):
             self.labelSupport[i * self.nSupport: (i + 1) * self.nSupport] = i
-            self.labelQuery[i * self.nQuery: (i + 1) * self.nQuery] = i
+            temp_tensor = torch.zeros(self.nQuery, self.nCls)
+            temp_tensor[:, i] = 1
+            self.labelQuery[i * self.nQuery: (i + 1) * self.nQuery] = temp_tensor
+
+        print("#########################################################")
+        print("Episodic JSON!!!")
+        print("#########################################################")
+        print(self.labelSupport.shape)
+        print(self.tensorSupport.shape)
+        print(self.labelQuery.shape)
+        print(self.tensorQuery.shape)
 
     def __getitem__(self, index):
         """
@@ -158,11 +169,12 @@ class EpisodeJSONDataset(data.Dataset):
                        'QueryTensor': 1 x nQuery x 3 x H x W,
                        'QueryLabel': 1 x nQuery}
         """
-        for i in range(self.nCls):
-            for j in range(self.nSupport):
-                imgPath = os.path.join(self.imgDir, self.episodeInfo[index]['Support'][i][j])
-                I = PilLoaderRGB(imgPath)
-                self.tensorSupport[i * self.nSupport + j] = self.imgTensor.copy_(self.transform(I))
+        for i in range(self.nCls + 1):
+            if i != self.nCls:
+                for j in range(self.nSupport):
+                    imgPath = os.path.join(self.imgDir, self.episodeInfo[index]['Support'][i][j])
+                    I = PilLoaderRGB(imgPath)
+                    self.tensorSupport[i * self.nSupport + j] = self.imgTensor.copy_(self.transform(I))
 
             for j in range(self.nQuery):
                 imgPath = os.path.join(self.imgDir, self.episodeInfo[index]['Query'][i][j])

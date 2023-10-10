@@ -26,7 +26,6 @@ from models import get_model
 def main(args):
     utils.init_distributed_mode(args)
 
-    print(args)
     device = torch.device(args.device)
 
     # fix the seed for reproducibility
@@ -67,7 +66,7 @@ def main(args):
     model = get_model(args)
     model.to(device)
 
-    model_ema = None # (by default OFF)
+    model_ema = None  # (by default OFF)
     if args.model_ema:
         # Important to create EMA model after cuda(), DP wrapper, and AMP but before SyncBN and DDP wrapper
         model_ema = ModelEma(
@@ -87,18 +86,18 @@ def main(args):
     ##############################################
     # Optimizer & scheduler & criterion
     if args.fp16:
-        scale = 1 / 8 # the default lr is for 8 GPUs
+        scale = 1 / 8  # the default lr is for 8 GPUs
         linear_scaled_lr = args.lr * utils.get_world_size() * scale
         args.lr = linear_scaled_lr
 
     loss_scaler = NativeScaler() if args.fp16 else None
 
-    #optimizer = create_optimizer(args, model_without_ddp)
+    # optimizer = create_optimizer(args, model_without_ddp)
     optimizer = torch.optim.SGD(
         [p for p in model_without_ddp.parameters() if p.requires_grad],
         args.lr,
         momentum=args.momentum,
-        weight_decay=0, # no weight decay for fine-tuning
+        weight_decay=0,  # no weight decay for fine-tuning
     )
 
     lr_scheduler, _ = create_scheduler(args, optimizer)
@@ -166,7 +165,7 @@ def main(args):
 
         lr_scheduler.step(epoch)
 
-        test_stats = evaluate(data_loader_val, model, criterion, device, args.seed+10000)
+        test_stats = evaluate(data_loader_val, model, criterion, device, args.seed + 10000)
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                      **{f'test_{k}': v for k, v in test_stats.items()},
@@ -189,7 +188,7 @@ def main(args):
                 utils.save_on_master(state_dict, checkpoint_path)
 
                 if test_stats["acc1"] <= max_accuracy:
-                    break # do not save best.pth
+                    break  # do not save best.pth
 
         print(f"Accuracy of the network on dataset_val: {test_stats['acc1']:.1f}%")
         max_accuracy = max(max_accuracy, test_stats["acc1"])

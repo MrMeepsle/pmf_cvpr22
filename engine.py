@@ -1,13 +1,15 @@
 import math
 import sys
+import time
 import warnings
 from typing import Iterable, Optional
 
+import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from timm.data import Mixup
-from timm.utils import accuracy, ModelEma
+from timm.utils import ModelEma
 
 import utils.deit_util as utils
 from utils import AverageMeter, to_device
@@ -19,15 +21,15 @@ def train_one_epoch(data_loader: Iterable,
                     optimizer: torch.optim.Optimizer,
                     epoch: int,
                     device: torch.device,
-                    loss_scaler = None,
+                    loss_scaler=None,
                     fp16: bool = False,
-                    max_norm: float = 0, # clip_grad
+                    max_norm: float = 0,  # clip_grad
                     model_ema: Optional[ModelEma] = None,
                     mixup_fn: Optional[Mixup] = None,
                     writer: Optional[SummaryWriter] = None,
                     set_training_mode=True):
-
     global_step = epoch * len(data_loader)
+    print(len(data_loader))
 
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
@@ -48,10 +50,8 @@ def train_one_epoch(data_loader: Iterable,
         # forward
         with torch.cuda.amp.autocast(fp16):
             output = model(SupportTensor, SupportLabel, x)
-
         output = output.view(x.shape[0] * x.shape[1], -1)
         y = y.view(x.shape[0] * x.shape[1], -1)
-
         loss = criterion(output, y)
         loss_value = loss.item()
 
@@ -77,7 +77,7 @@ def train_one_epoch(data_loader: Iterable,
         lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(loss=loss_value)
         metric_logger.update(lr=lr)
-        metric_logger.update(n_ways=SupportLabel.max()+1)
+        metric_logger.update(n_ways=SupportLabel.max() + 1)
         metric_logger.update(n_imgs=SupportTensor.shape[1] + x.shape[1])
 
         # tensorboard
@@ -110,11 +110,34 @@ def evaluate(data_loaders, model, criterion, device, seed=None, ep=None):
             test_stats_glb[k] = torch.tensor([test_stats[k] for test_stats in test_stats_lst.values()]).mean().item()
 
         return test_stats_glb
-    elif isinstance(data_loaders, torch.utils.data.DataLoader): # when args.eval = True
+    elif isinstance(data_loaders, torch.utils.data.DataLoader):  # when args.eval = True
         return _evaluate(data_loaders, model, criterion, device, seed, ep)
     else:
         warnings.warn(f'The structure of {data_loaders} is not recognizable.')
         return _evaluate(data_loaders, model, criterion, device, seed)
+
+
+@torch.no_grad()
+def accuracy(output, original_label, treshold=0.5):
+    """
+    if above treshold, return top-1 accuracy, if under treshold, class should be 0.
+    Could be improved, but works for now
+    """
+    softmax = torch.nn.Softmax(dim=1)
+    predicted_labels = softmax(output)
+    values, argmax = torch.max(predicted_labels, dim=1)
+    class_indexes = values >= treshold
+    non_class_indexes = ~class_indexes
+    vals, amax = torch.max(original_label, dim=1)
+    original_labels = amax
+    original_labels[vals == 0] = -1
+
+    ## Argmax for labels above treshold, zero for labels below threshold
+    argmax_acc = torch.count_nonzero(argmax[class_indexes] == original_labels[class_indexes])
+    zeros_acc = torch.count_nonzero(original_labels[non_class_indexes] == -1)
+    acc = (argmax_acc + zeros_acc) / len(original_labels)
+
+    return acc
 
 
 @torch.no_grad()
@@ -131,7 +154,7 @@ def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
 
     if seed is not None:
         data_loader.generator.manual_seed(seed)
-
+    output_prev = None
     for ii, batch in enumerate(metric_logger.log_every(data_loader, 10, header)):
         if ep is not None:
             if ii > ep:
@@ -145,15 +168,17 @@ def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
             output = model(SupportTensor, SupportLabel, x)
 
         output = output.view(x.shape[0] * x.shape[1], -1)
-        y = y.view(-1)
+        y = y.view(x.shape[0] * x.shape[1], -1)
+
         loss = criterion(output, y)
-        acc1, acc5 = accuracy(output, y, topk=(1, 5))
+        acc1 = accuracy(output, y)
+        acc5 = torch.tensor(1)
 
         batch_size = x.shape[0]
         metric_logger.update(loss=loss.item())
         metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)
         metric_logger.meters['acc5'].update(acc5.item(), n=batch_size)
-        metric_logger.update(n_ways=SupportLabel.max()+1)
+        metric_logger.update(n_ways=SupportLabel.max() + 1)
         metric_logger.update(n_imgs=SupportTensor.shape[1] + x.shape[1])
 
     # gather the stats from all processes
