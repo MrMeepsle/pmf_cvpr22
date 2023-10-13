@@ -136,6 +136,8 @@ class EpisodeJSONDataset(data.Dataset):
         self.nQuery = len(self.episodeInfo[0]['Query'][0])
         self.transform = valTransform
 
+        print("classes:", self.nCls, ",support images:", self.nSupport, ",queries:", self.nQuery)
+
         floatType = torch.FloatTensor
         intType = torch.LongTensor
 

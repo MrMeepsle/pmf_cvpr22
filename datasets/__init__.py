@@ -42,21 +42,25 @@ def get_sets(args):
         trainDir, valDir, testDir, episodeJson, nbCls = \
         dataset_setting(args.nSupport, args.img_size)
 
-    trainSet = EpisodeDataset(imgDir=trainDir,
-                              nCls=args.nClsEpisode,
-                              nSupport=args.nSupport,
-                              nQuery=args.nQuery,
-                              transform=trainTransform,
-                              inputW=inputW,
-                              inputH=inputH,
-                              nEpisode=args.nEpisode)
+    if args.eval:
+        trainSet = None
+        valSet = None
+    else:
+        trainSet = EpisodeDataset(imgDir=trainDir,
+                                  nCls=args.nClsEpisode,
+                                  nSupport=args.nSupport,
+                                  nQuery=args.nQuery,
+                                  transform=trainTransform,
+                                  inputW=inputW,
+                                  inputH=inputH,
+                                  nEpisode=args.nEpisode)
 
-    # episodeJson is only used here
-    valSet = EpisodeJSONDataset(episodeJson,
-                                valDir,
-                                inputW,
-                                inputH,
-                                valTransform)
+        # episodeJson is only used here
+        valSet = EpisodeJSONDataset(episodeJson,
+                                    valDir,
+                                    inputW,
+                                    inputH,
+                                    valTransform)
 
     testSet = EpisodeDataset(imgDir=testDir,
                              nCls=args.nClsEpisode,
@@ -156,7 +160,7 @@ def get_loaders(args, num_tasks, global_rank):
         generator=generator
     )
 
-    print("data loader train", data_loader_train.__dict__)
+    # print("data loader train", data_loader_train.__dict__)
 
     return data_loader_train, data_loader_val
 
