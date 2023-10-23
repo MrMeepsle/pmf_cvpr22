@@ -1,5 +1,6 @@
 import math
 import sys
+import time
 import warnings
 from typing import Iterable, Optional
 
@@ -19,14 +20,13 @@ def train_one_epoch(data_loader: Iterable,
                     optimizer: torch.optim.Optimizer,
                     epoch: int,
                     device: torch.device,
-                    loss_scaler = None,
+                    loss_scaler=None,
                     fp16: bool = False,
-                    max_norm: float = 0, # clip_grad
+                    max_norm: float = 0,  # clip_grad
                     model_ema: Optional[ModelEma] = None,
                     mixup_fn: Optional[Mixup] = None,
                     writer: Optional[SummaryWriter] = None,
                     set_training_mode=True):
-
     global_step = epoch * len(data_loader)
 
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -76,7 +76,7 @@ def train_one_epoch(data_loader: Iterable,
         lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(loss=loss_value)
         metric_logger.update(lr=lr)
-        metric_logger.update(n_ways=SupportLabel.max()+1)
+        metric_logger.update(n_ways=SupportLabel.max() + 1)
         metric_logger.update(n_imgs=SupportTensor.shape[1] + x.shape[1])
 
         # tensorboard
@@ -109,7 +109,7 @@ def evaluate(data_loaders, model, criterion, device, seed=None, ep=None):
             test_stats_glb[k] = torch.tensor([test_stats[k] for test_stats in test_stats_lst.values()]).mean().item()
 
         return test_stats_glb
-    elif isinstance(data_loaders, torch.utils.data.DataLoader): # when args.eval = True
+    elif isinstance(data_loaders, torch.utils.data.DataLoader):  # when args.eval = True
         return _evaluate(data_loaders, model, criterion, device, seed, ep)
     else:
         warnings.warn(f'The structure of {data_loaders} is not recognizable.')
@@ -131,10 +131,12 @@ def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
     if seed is not None:
         data_loader.generator.manual_seed(seed)
 
-    for ii, batch in enumerate(metric_logger.log_every(data_loader, 10, header)):
-        if ep is not None:
-            if ii > ep:
-                break
+    print("testing batches")
+    start = time.time()
+    for batch in data_loader:
+        # if ep is not None:
+        #     if ii > ep:
+        #         break
 
         batch = to_device(batch, device)
         SupportTensor, SupportLabel, x, y = batch
@@ -143,18 +145,21 @@ def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
         with torch.cuda.amp.autocast():
             output = model(SupportTensor, SupportLabel, x)
 
-        output = output.view(x.shape[0] * x.shape[1], -1)
-        y = y.view(-1)
-        loss = criterion(output, y)
-        acc1, acc5 = accuracy(output, y, topk=(1, 5))
+        # output = output.view(x.shape[0] * x.shape[1], -1)
+        # y = y.view(-1)
+        # loss = criterion(output, y)
+        # acc1, acc5 = accuracy(output, y, topk=(1, 5))
+        #
+        # batch_size = x.shape[0]
+        # metric_logger.update(loss=loss.item())
+        # metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)
+        # metric_logger.meters['acc5'].update(acc5.item(), n=batch_size)
+        # metric_logger.update(n_ways=SupportLabel.max()+1)
+        # metric_logger.update(n_imgs=SupportTensor.shape[1] + x.shape[1])
 
-        batch_size = x.shape[0]
-        metric_logger.update(loss=loss.item())
-        metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)
-        metric_logger.meters['acc5'].update(acc5.item(), n=batch_size)
-        metric_logger.update(n_ways=SupportLabel.max()+1)
-        metric_logger.update(n_imgs=SupportTensor.shape[1] + x.shape[1])
-
+    print("batches have been tested")
+    end = time.time()
+    print(end - start)
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
     print('* Acc@1 {top1.global_avg:.3f} Acc@5 {top5.global_avg:.3f} loss {losses.global_avg:.3f}'

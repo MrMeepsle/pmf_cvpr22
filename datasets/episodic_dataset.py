@@ -37,6 +37,7 @@ class EpisodeDataset(data.Dataset):
         self.nQuery = nQuery
         self.transform = transform
         self.nEpisode = nEpisode
+        print("classes:", self.nCls, "support:", self.nSupport, "query:", self.nQuery)
 
         floatType = torch.FloatTensor
         intType = torch.LongTensor
