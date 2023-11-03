@@ -1,18 +1,18 @@
 # collapse-hide
+from pathlib import Path
 
 ####### PACKAGES
 
-import numpy as np
 import os
 import torch
-import torchvision
 from torch.utils.data import Dataset, DataLoader
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
-
-import cv2
-
+from torchvision.transforms import transforms
+import PIL.Image as Image
 from tqdm import tqdm
+
+
+def pil_loader_rgb(path_to_img: Path):
+    return Image.open(path_to_img).convert('RGB')
 
 
 class CustomDataset(Dataset):
@@ -24,38 +24,36 @@ class CustomDataset(Dataset):
             print(root)
             for f in f_names:
                 if f.endswith(".jpg") or f.endswith(".png"):
-                    self.data.append(os.path.join(root, f))
+                    self.data.append(Path(root).joinpath(f))
         print(len(self.data))
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        image = cv2.imread(self.data[idx], cv2.COLOR_BGR2RGB)
+        image = pil_loader_rgb(self.data[idx])
 
         # augmentations
         if self.transform is not None:
-            image = self.transform(image=image)['image']
+            image = self.transform(image)
 
         return image
 
 
 ####### PARAMS
 
-device = torch.device('cpu')
+device = torch.device('cuda:0')
 num_workers = 8
-image_size = 512
+image_size = 80
 batch_size = 8
-data_path = './data/PMF_dataset'
+data_path = './Custom-Set'
 
 # collapse-show
-
-augs = A.Compose([A.Resize(height=image_size,
-                           width=image_size),
-                  A.Normalize(mean=(0, 0, 0),
-                              std=(1, 1, 1)),
-                  ToTensorV2()])
-
+augs = transforms.Compose([
+    transforms.Resize(size=(image_size, image_size), antialias=True),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=[0, 0, 0], std=[1, 1, 1]),
+])
 # dataset
 image_dataset = CustomDataset(data_dir=data_path,
                               transform=augs)
@@ -74,7 +72,7 @@ psum = torch.tensor([0.0, 0.0, 0.0])
 psum_sq = torch.tensor([0.0, 0.0, 0.0])
 count = 0
 
-# loop through images
+# loop through image_tensors
 print("starting loop")
 for inputs in tqdm(image_loader):
     psum += inputs.sum(axis=[0, 2, 3])
