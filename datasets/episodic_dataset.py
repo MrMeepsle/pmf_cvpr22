@@ -1,6 +1,9 @@
 import os
+import random
+
 import torch
 import torch.utils.data as data
+import torch.nn.functional as F
 import PIL.Image as Image
 import numpy as np
 import json
@@ -32,7 +35,7 @@ class EpisodeDataset(data.Dataset):
 
         self.imgDir = imgDir
         self.clsList = os.listdir(imgDir)
-        self.nCls = nCls + 1  # Adaptation to have one more query class than support classes
+        self.nCls = nCls
         self.nSupport = nSupport
         self.nQuery = nQuery
         self.transform = transform
@@ -40,27 +43,17 @@ class EpisodeDataset(data.Dataset):
         print("classes:", nCls, ",support images:", nSupport, ",queries:", nQuery)
 
         floatType = torch.FloatTensor
-        intType = torch.LongTensor
 
-        self.tensorSupport = floatType((self.nCls - 1) * nSupport, 3, inputW, inputH)
-        self.labelSupport = intType((self.nCls - 1) * nSupport)
+        self.tensorSupport = floatType(self.nCls * nSupport, 3, inputW, inputH)
         self.tensorQuery = floatType(self.nCls * nQuery, 3, inputW, inputH)
-        self.labelQuery = intType(self.nCls * nQuery)
         self.imgTensor = floatType(3, inputW, inputH)
-        self.labelQuery = torch.zeros((self.nCls * self.nQuery, (self.nCls - 1)))
 
         # labels {0, ..., nCls-1}
-        for i in range(self.nCls):
-            if i != self.nCls:
-                self.labelSupport[i * self.nSupport: (i + 1) * self.nSupport] = i
-            # self.labelQuery[i * self.nQuery: (i + 1) * self.nQuery] = i
+        self.labelSupport = F.one_hot(torch.repeat_interleave(torch.arange(0, self.nCls), self.nSupport, dim=0),
+                                      num_classes=self.nCls)
+        self.labelQuery = F.one_hot(torch.repeat_interleave(torch.arange(0, self.nCls), self.nQuery, dim=0),
+                                    num_classes=self.nCls)
 
-        for i in range(self.nCls - 1):
-            print(self.nQuery)
-            temp_tensor = torch.zeros(self.nQuery, self.nCls - 1)
-            temp_tensor[:, i] = 1
-            print(temp_tensor)
-            self.labelQuery[i * self.nQuery: (i + 1) * self.nQuery] = temp_tensor
         print("labelquery", self.labelQuery)
         print("support/query labels")
         print(self.labelSupport)
@@ -71,7 +64,7 @@ class EpisodeDataset(data.Dataset):
     def __len__(self):
         return self.nEpisode
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx, model):
         """
         Return an episode
 
@@ -80,28 +73,23 @@ class EpisodeDataset(data.Dataset):
                        'QueryTensor': 1 x nQuery x 3 x H x W,
                        'QueryLabel': 1 x nQuery}
         """
-        # select nCls from clsList
-        clsEpisode = np.random.choice(self.clsList, self.nCls, replace=False)
+        # select random class from clsList
+        episode_class = random.choice(self.clsList)
+
+        # clsEpisode = np.random.choice(self.clsList, self.nCls, replace=False)
         # print(clsEpisode)
-        for i, cls in enumerate(clsEpisode):
+        for i, cls in enumerate(self.clsList):
             clsPath = os.path.join(self.imgDir, cls)
             imgList = os.listdir(clsPath)
 
-            # in total nQuery+nSupport images from each class
-            imgCls = np.random.choice(imgList, self.nQuery + self.nSupport, replace=False)
+            # in total nSupport images from each class
+            imgCls = np.random.choice(imgList, self.nSupport, replace=False)
 
-            if i != (len(clsEpisode) - 1):
-                for j in range(self.nSupport):
-                    img = imgCls[j]
-                    imgPath = os.path.join(clsPath, img)
-                    I = PilLoaderRGB(imgPath)
-                    self.tensorSupport[i * self.nSupport + j] = self.imgTensor.copy_(self.transform(I))
-
-            for j in range(self.nQuery):
-                img = imgCls[j + self.nSupport]
+            for j in range(self.nSupport):
+                img = imgCls[j]
                 imgPath = os.path.join(clsPath, img)
                 I = PilLoaderRGB(imgPath)
-                self.tensorQuery[i * self.nQuery + j] = self.imgTensor.copy_(self.transform(I))
+                self.tensorSupport[i * self.nSupport + j] = self.imgTensor.copy_(self.transform(I))
 
         ## Random permutation. Though this is not necessary in our approach
         permSupport = torch.randperm((self.nCls - 1) * self.nSupport)
