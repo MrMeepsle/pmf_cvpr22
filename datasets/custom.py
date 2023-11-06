@@ -48,12 +48,14 @@ def dataset_setting(nSupport, img_size=80):
     # std = [x / 255.0 for x in std]
     # print("mean =", *mean)
     # print("std = ", *std)
-    mean = [0.3528, 0.4193, 0.4640]
-    std = [0.2542, 0.2605, 0.2740]
+    mean = [0.4416, 0.4286, 0.4058]
+    std = [0.2010, 0.1880, 0.2029]
     normalize = transforms.Normalize(mean=mean, std=std)
     trainTransform = transforms.Compose(
-        [transforms.RandomResizedCrop((img_size, img_size), scale=(0.05, 1.0)),  # Is this necessary?
-         transforms.RandomHorizontalFlip(),
+        [transforms.RandomResizedCrop((img_size, img_size), scale=(0.05, 1.0)),
+         transforms.RandomPerspective(distortion_scale=0.2, p=.2),
+         transforms.RandomRotation(degrees=(-30, 30)),
+         transforms.ColorJitter(brightness=.5, hue=.4),
          transforms.ToTensor(),
          normalize
          ])

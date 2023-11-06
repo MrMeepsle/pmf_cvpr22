@@ -46,7 +46,7 @@ device = torch.device('cuda:0')
 num_workers = 8
 image_size = 80
 batch_size = 8
-data_path = './Custom-Set'
+data_path = './data/PMF_dataset'
 
 # collapse-show
 augs = transforms.Compose([
