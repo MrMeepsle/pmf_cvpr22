@@ -152,18 +152,17 @@ def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
 
     if seed is not None:
         data_loader.generator.manual_seed(seed)
-    output_prev = None
     for ii, batch in enumerate(metric_logger.log_every(data_loader, 10, header)):
         if ep is not None:
             if ii > ep:
                 break
 
-        batch = to_device(batch, device)
-        SupportTensor, SupportLabel, x, y = batch
+        batch = to_device(batch, device) # Put device somewhere else as we have to load only a fraction on CPU
+        support_class, support_class_label, support_tensor, support_labels, x_class, y_class, x, y = batch
 
         # compute output
         with torch.cuda.amp.autocast():
-            output = model(SupportTensor, SupportLabel, x)
+            output = model(support_class, support_class_label, support_tensor, support_labels, x_class, y_class, x, y)
 
         output = output.view(x.shape[0] * x.shape[1], -1)
         y = y.view(x.shape[0] * x.shape[1], -1)

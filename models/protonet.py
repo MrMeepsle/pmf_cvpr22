@@ -28,7 +28,7 @@ class ProtoNet(nn.Module):
         cls_scores = self.sigmoid(cls_scores)
         return cls_scores
 
-    def forward(self, supp_x, supp_y, x):
+    def predict_from_prototypes(self, supp_x, supp_y, x):
         """
         supp_x.shape = [B, nSupp, C, H, W]
         supp_y.shape = [B, nSupp]
@@ -43,6 +43,7 @@ class ProtoNet(nn.Module):
         supp_y_1hot = F.one_hot(supp_y, num_classes).transpose(1, 2)  # B, nC, nSupp
 
         # B, nC, nSupp x B, nSupp, d = B, nC, d
+        print(supp_y_1hot.shape, supp_f.shape, supp_x.shape)
         prototypes = torch.bmm(supp_y_1hot.float(), supp_f)
         prototypes = prototypes / supp_y_1hot.sum(dim=2, keepdim=True)  # NOTE: may div 0 if some classes got 0 images
 
@@ -51,3 +52,16 @@ class ProtoNet(nn.Module):
 
         predictions = self.cos_classifier(prototypes, feat)  # B, nQry, nC
         return predictions
+
+    def get_k_closest(self, support_class, support_images, support_labels, k=2):
+        predictions = self.predict_from_prototypes(support_images, support_labels, support_class)
+        print(predictions)
+
+    def forward(self, support_class, support_class_label, support_tensor, support_labels, x_class, y_class, x_rest, y_rest):
+        """
+        supp_x.shape = [B, nSupp, C, H, W]
+        supp_y.shape = [B, nSupp]
+        x.shape = [B, nQry, C, H, W]
+        """
+        self.get_k_closest(x_class, support_tensor, support_labels)
+        return self.predict_from_prototypes(supp_x, supp_y, x_rest)
