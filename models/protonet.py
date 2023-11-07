@@ -53,15 +53,49 @@ class ProtoNet(nn.Module):
         predictions = self.cos_classifier(prototypes, feat)  # B, nQry, nC
         return predictions
 
-    def get_k_closest(self, support_class, support_images, support_labels, k=2):
-        predictions = self.predict_from_prototypes(support_images, support_labels, support_class)
-        print(predictions)
+    @staticmethod
+    def _map_class_labels(values_to_map):
+        """
+        Map class labels to 1-k values
+        """
+        unique_values = torch.unique(values_to_map)
+        mapping_tensor = torch.stack((unique_values, torch.arange(1, len(unique_values) + 1,
+                                                                  device=unique_values.device)), dim=1)
+        mask = values_to_map == mapping_tensor[:, :1]
+        mapped_values = (1 - mask.sum(dim=0)) * values_to_map + (mask * mapping_tensor[:, 1:]).sum(dim=0)
+        return mapped_values
 
-    def forward(self, support_class, support_class_label, support_tensor, support_labels, x_class, y_class, x_rest, y_rest):
+    # Assume support class label is standard,
+    # Assume y_class is standard
+    def get_k_closest(self, support_class, support_class_label, support_images, support_labels, x_class, y_class,
+                      x_rest, y_rest, k=5):
+        predictions = torch.nan_to_num(self.predict_from_prototypes(support_images, support_labels, support_class))
+        _, closest_classes = torch.topk(predictions, k, dim=2)
+
+        support_filter = ((closest_classes.view(-1, 1) - support_labels.view(-1)).transpose(-1, -2) == 0).sum(
+            dim=-1).view(support_labels.shape) != 0
+        B, nSupp, C, H, W = support_images.shape
+        support_tensor = torch.cat((support_class, support_images[support_filter].view(B, k, C, H, W)), dim=1)
+        support_labels = torch.cat(
+            (support_class_label, self._map_class_labels(support_labels[support_filter]).view(B, k)), dim=1)
+
+        query_filter = ((closest_classes.view(-1, 1) - y_rest.view(-1)).transpose(-1, -2) == 0).sum(dim=-1).view(
+            y_rest.shape) != 0
+        B, nQuery, C, H, W = x_rest.shape
+        x = torch.cat((x_class, x_rest[query_filter].view(B, k, C, H, W)), dim=1)
+        y = torch.cat((y_class, self._map_class_labels(y_rest[query_filter]).view(B, k)), dim=1)
+        y = F.one_hot(y, num_classes=k + 1)
+
+        return support_tensor, support_labels, x, y
+
+    def forward(self, support_class, support_class_label, support_tensor, support_labels, x_class, y_class, x_rest,
+                y_rest):
         """
         supp_x.shape = [B, nSupp, C, H, W]
         supp_y.shape = [B, nSupp]
         x.shape = [B, nQry, C, H, W]
         """
-        self.get_k_closest(x_class, support_tensor, support_labels)
+        # TODO: change to support class
+        SupportX, SupportY, x, y = self.get_k_closest(x_class, support_class_label, support_tensor,
+                                                      support_labels, x_class, y_class, x_rest, y_rest)
         return self.predict_from_prototypes(supp_x, supp_y, x_rest)
