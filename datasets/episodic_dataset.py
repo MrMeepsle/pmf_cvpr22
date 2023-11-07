@@ -47,13 +47,10 @@ class EpisodeDataset(data.Dataset):
         floatType = torch.FloatTensor
 
         self.classSupport = floatType(nSupport, 3, inputW, inputH)
-        # This is F one cold
-        self.classSupportLabel = torch.zeros(self.nSupport, dtype=torch.int64)
         self.tensorSupport = floatType((self.clsListLength - 1) * nSupport, 3, inputW, inputH)
         self.labelSupport = torch.repeat_interleave(torch.arange(1, self.clsListLength), self.nSupport, dim=0)
 
         self.classQuery = floatType(nQuery, 3, inputW, inputH)
-        self.classQueryLabel = torch.zeros(self.nSupport, dtype=torch.int64)
         self.tensorQuery = floatType((self.clsListLength - 1) * nQuery, 3, inputW, inputH)
         self.labelQuery = torch.repeat_interleave(torch.arange(1, self.clsListLength), self.nQuery, dim=0)
 
@@ -75,7 +72,7 @@ class EpisodeDataset(data.Dataset):
         episode_class = random.choice(self.clsList)
         temp_class_list = set(self.clsList) - {episode_class}
 
-        print(episode_class)
+        # print(episode_class)
         for i, cls in enumerate(temp_class_list):
             clsPath = os.path.join(self.imgDir, cls)
             imgList = os.listdir(clsPath)
@@ -92,16 +89,10 @@ class EpisodeDataset(data.Dataset):
                 else:
                     self.tensorQuery[i * self.nSupport + j - self.nSupport] = self.imgTensor.copy_(self.transform(I))
 
-        ## Random permutation. Though this is not necessary in our approach
-        # permSupport = torch.randperm((self.nCls - 1) * self.nSupport)
-        # permQuery = torch.randperm(self.nCls * self.nQuery)
-
         return (self.classSupport,
-                self.classSupportLabel,
                 self.tensorSupport,
                 self.labelSupport,
                 self.classQuery,
-                self.classQueryLabel,
                 self.tensorQuery,
                 self.labelQuery)
 

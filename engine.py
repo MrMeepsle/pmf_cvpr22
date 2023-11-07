@@ -42,7 +42,10 @@ def train_one_epoch(data_loader: Iterable,
 
     for batch in metric_logger.log_every(data_loader, print_freq, header):
         batch = to_device(batch, device)
-        SupportTensor, SupportLabel, x, y = batch
+        support_class, support_tensor, support_labels, x_class, x, y = batch
+
+        SupportTensor, SupportLabel, x, y = model.get_k_closest(x_class, support_tensor, support_labels,
+                                                                x_class, x, y)
 
         if mixup_fn is not None:
             x, y = mixup_fn(x, y)
@@ -157,15 +160,18 @@ def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
             if ii > ep:
                 break
 
-        batch = to_device(batch, device) # Put device somewhere else as we have to load only a fraction on CPU
-        support_class, support_class_label, support_tensor, support_labels, x_class, y_class, x, y = batch
+        batch = to_device(batch, device)  # Put device somewhere else as we have to load only a fraction on CPU
+        support_class, support_tensor, support_labels, x_class, x, y = batch
 
         # compute output
         with torch.cuda.amp.autocast():
-            output = model(support_class, support_class_label, support_tensor, support_labels, x_class, y_class, x, y)
+            # Make K an argument here, fix x class issues
+            SupportTensor, SupportLabel, x, y = model.get_k_closest(x_class, support_tensor, support_labels,
+                                                                    x_class, x, y)
+            output = model(SupportTensor, SupportLabel, x)
 
         output = output.view(x.shape[0] * x.shape[1], -1)
-        y = y.view(x.shape[0] * x.shape[1], -1)
+        y = y.view(x.shape[0] * x.shape[1], -1).float()
 
         loss = criterion(output, y)
         acc1 = accuracy(output, y)
