@@ -110,7 +110,9 @@ def main(args):
     else:
         # criterion = torch.nn.CrossEntropyLoss()
         # To work with what we have. Model should be able to predict values between 0-1, Sigmoid??
-        criterion = torch.nn.BCELoss()
+        # criterion = torch.nn.BCELoss()
+        # criterion = torch.nn.L1Loss(reduction='sum')
+        criterion = torch.nn.MSELoss(reduction='sum')
 
     ##############################################
     # Resume training from ckpt (model, optimizer, lr_scheduler, epoch, model_ema, scaler)
@@ -136,7 +138,7 @@ def main(args):
 
     ##############################################
     # Test
-    test_stats = evaluate(data_loader_val, model, criterion, device, args.seed+10000)
+    test_stats = evaluate(data_loader_val, model, criterion, device, args.seed + 10000, args.nClsEpisode - 1)
     print(f"Accuracy of the network on dataset_val: {test_stats['acc1']:.1f}%")
     if args.output_dir and utils.is_main_process():
         test_stats['epoch'] = -1
@@ -162,7 +164,7 @@ def main(args):
         train_stats = train_one_epoch(
             data_loader_train, model, criterion, optimizer, epoch, device,
             loss_scaler, args.fp16, args.clip_grad, model_ema, mixup_fn, writer,
-            set_training_mode=False  # TODO: may need eval mode for finetuning
+            set_training_mode=False, k_closest=args.nClsEpisode - 1,
         )
 
         lr_scheduler.step(epoch)

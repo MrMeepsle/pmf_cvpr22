@@ -79,15 +79,34 @@ class EpisodeDataset(data.Dataset):
 
             # in total nSupport + nQuery images from each class
             imgCls = np.random.choice(imgList, self.nSupport + self.nQuery, replace=False)
-
-            for j in range(self.nSupport + self.nQuery):
+            for j in range(self.nSupport):
                 img = imgCls[j]
                 imgPath = os.path.join(clsPath, img)
                 I = PilLoaderRGB(imgPath)
-                if j < self.nSupport:
-                    self.tensorSupport[i * self.nSupport + j] = self.imgTensor.copy_(self.transform(I))
-                else:
-                    self.tensorQuery[i * self.nSupport + j - self.nSupport] = self.imgTensor.copy_(self.transform(I))
+                self.tensorSupport[i * self.nSupport + j] = self.imgTensor.copy_(self.transform(I))
+
+            for j in range(self.nQuery):
+                img = imgCls[j]
+                imgPath = os.path.join(clsPath, img)
+                I = PilLoaderRGB(imgPath)
+                self.tensorQuery[i * self.nQuery + j] = self.imgTensor.copy_(self.transform(I))
+
+        # Get episode class info
+        clsPath = os.path.join(self.imgDir, episode_class)
+        imgList = os.listdir(clsPath)
+        imgCls = np.random.choice(imgList, self.nSupport + self.nQuery, replace=False)
+
+        for j in range(self.nSupport):
+            img = imgCls[j]
+            imgPath = os.path.join(clsPath, img)
+            I = PilLoaderRGB(imgPath)
+            self.classSupport[j] = self.imgTensor.copy_(self.transform(I))
+
+        for j in range(self.nQuery):
+            img = imgCls[j]
+            imgPath = os.path.join(clsPath, img)
+            I = PilLoaderRGB(imgPath)
+            self.classQuery[j] = self.imgTensor.copy_(self.transform(I))
 
         return (self.classSupport,
                 self.tensorSupport,

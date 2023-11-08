@@ -51,14 +51,7 @@ def get_sets(args):
                               inputH=inputH,
                               nEpisode=args.nEpisode)
 
-    # episodeJson is only used here
-    # valSet = EpisodeJSONDataset(episodeJson,
-    #                             valDir,
-    #                             inputW,
-    #                             inputH,
-    #                             valTransform)
-
-    valSet = EpisodeDataset(imgDir=testDir,
+    valSet = EpisodeDataset(imgDir=valDir,
                              nCls=args.nClsEpisode,
                              nSupport=args.nSupport,
                              nQuery=args.nQuery,
@@ -66,8 +59,16 @@ def get_sets(args):
                              inputW=inputW,
                              inputH=inputH,
                              nEpisode=args.nEpisode)
+    # Maybe save outputs to .pth file
 
-    testSet = None
+    testSet = EpisodeDataset(imgDir=testDir,
+                             nCls=args.nClsEpisode,
+                             nSupport=args.nSupport,
+                             nQuery=args.nQuery,
+                             transform=valTransform,
+                             inputW=inputW,
+                             inputH=inputH,
+                             nEpisode=args.nEpisode)
 
     return trainSet, valSet, testSet
 

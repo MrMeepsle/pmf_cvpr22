@@ -67,9 +67,9 @@ class ProtoNet(nn.Module):
     # Assume support class label is standard,
     # Assume y_class is standard
     def get_k_closest(self, class_support_images, support_images, support_labels, class_x, x_rest, y_rest, k=5):
-        predictions = torch.nan_to_num(
-            self.predict_from_prototypes(support_images, support_labels, class_support_images))
-        _, closest_classes = torch.topk(predictions, k, dim=2)
+        predictions = torch.mean(torch.nan_to_num(
+            self.predict_from_prototypes(support_images, support_labels, class_support_images)), dim=1)
+        _, closest_classes = torch.topk(predictions, k, dim=1)
 
         support_filter = ((closest_classes.view(-1, 1) - support_labels.view(-1)).transpose(-1, -2) == 0).sum(
             dim=-1).view(support_labels.shape) != 0
@@ -78,7 +78,7 @@ class ProtoNet(nn.Module):
         support_tensor = torch.cat(
             (class_support_images, support_images[support_filter].view(B, k * nSupp, C, H, W)), dim=1)
         support_labels = torch.cat(
-            (support_class_label, self._map_class_labels(support_labels[support_filter]).view(B, k) * nSupp),
+            (support_class_label, self._map_class_labels(support_labels[support_filter]).view(B, k * nSupp)),
             dim=1)
 
         query_filter = ((closest_classes.view(-1, 1) - y_rest.view(-1)).transpose(-1, -2) == 0).sum(dim=-1).view(

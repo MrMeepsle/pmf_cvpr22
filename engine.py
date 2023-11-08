@@ -27,7 +27,8 @@ def train_one_epoch(data_loader: Iterable,
                     model_ema: Optional[ModelEma] = None,
                     mixup_fn: Optional[Mixup] = None,
                     writer: Optional[SummaryWriter] = None,
-                    set_training_mode=True):
+                    set_training_mode=True,
+                    k_closest=2):
     global_step = epoch * len(data_loader)
     print(len(data_loader))
 
@@ -45,7 +46,7 @@ def train_one_epoch(data_loader: Iterable,
         support_class, support_tensor, support_labels, x_class, x, y = batch
 
         SupportTensor, SupportLabel, x, y = model.get_k_closest(x_class, support_tensor, support_labels,
-                                                                x_class, x, y)
+                                                                x_class, x, y, k=k_closest)
 
         if mixup_fn is not None:
             x, y = mixup_fn(x, y)
@@ -53,8 +54,10 @@ def train_one_epoch(data_loader: Iterable,
         # forward
         with torch.cuda.amp.autocast(fp16):
             output = model(SupportTensor, SupportLabel, x)
-        output = output.view(x.shape[0] * x.shape[1], -1)
-        y = y.view(x.shape[0] * x.shape[1], -1)
+        output = output.view(x.shape[0] * x.shape[1], -1).float()
+        print(output)
+        y = y.view(x.shape[0] * x.shape[1], -1).float()
+        print(y)
         loss = criterion(output, y)
         loss_value = loss.item()
 
@@ -96,7 +99,7 @@ def train_one_epoch(data_loader: Iterable,
     return {k: meter.global_avg for k, meter in metric_logger.meters.items()}
 
 
-def evaluate(data_loaders, model, criterion, device, seed=None, ep=None):
+def evaluate(data_loaders, model, criterion, device, seed=None, ep=None, k_closest=2):
     if isinstance(data_loaders, dict):
         test_stats_lst = {}
         test_stats_glb = {}
@@ -114,10 +117,10 @@ def evaluate(data_loaders, model, criterion, device, seed=None, ep=None):
 
         return test_stats_glb
     elif isinstance(data_loaders, torch.utils.data.DataLoader):  # when args.eval = True
-        return _evaluate(data_loaders, model, criterion, device, seed, ep)
+        return _evaluate(data_loaders, model, criterion, device, seed, ep, k_closest)
     else:
         warnings.warn(f'The structure of {data_loaders} is not recognizable.')
-        return _evaluate(data_loaders, model, criterion, device, seed)
+        return _evaluate(data_loaders, model, criterion, device, seed, k_closest)
 
 
 @torch.no_grad()
@@ -142,7 +145,7 @@ def accuracy(output, original_label, treshold=0.5):
 
 
 @torch.no_grad()
-def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
+def _evaluate(data_loader, model, criterion, device, seed=None, ep=None, k_closest=2):
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('n_ways', utils.SmoothedValue(window_size=1, fmt='{value:d}'))
     metric_logger.add_meter('n_imgs', utils.SmoothedValue(window_size=1, fmt='{value:d}'))
@@ -166,11 +169,11 @@ def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
         # compute output
         with torch.cuda.amp.autocast():
             # Make K an argument here, fix x class issues
-            SupportTensor, SupportLabel, x, y = model.get_k_closest(x_class, support_tensor, support_labels,
-                                                                    x_class, x, y)
+            SupportTensor, SupportLabel, x, y = model.get_k_closest(support_class, support_tensor, support_labels,
+                                                                    x_class, x, y, k=k_closest)
             output = model(SupportTensor, SupportLabel, x)
 
-        output = output.view(x.shape[0] * x.shape[1], -1)
+        output = output.view(x.shape[0] * x.shape[1], -1).float()
         y = y.view(x.shape[0] * x.shape[1], -1).float()
 
         loss = criterion(output, y)
