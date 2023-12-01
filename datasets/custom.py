@@ -1,4 +1,5 @@
 from os import listdir
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -35,11 +36,11 @@ def dataset_setting(nSupport, img_size=80):
 
     :param int nSupport: number of support examples
     """
-    trainDir = './data/PMF_dataset/train/'
-    valDir = './data/PMF_dataset/validation/'
-    testDir = './data/PMF_dataset/test/'
-    episodeJson = './data/PMF_dataset/val1000Episode_5_way_1_shot.json' if nSupport == 1 \
-        else './data/PMF_dataset/val1000Episode_5_way_5_shot.json'
+    trainDir = Path("data", "PMF_dataset", "train")
+    valDir = Path("data", "PMF_dataset", "validation")
+    testDir = Path("data", "PMF_dataset", "test")
+    episodeJson = Path("data", "PMF_dataset", "val1000Episode_5_way_1_shot.json") if nSupport == 1 \
+        else Path("data", "PMF_dataset", "val1000Episode_5_way_5_shot.json")
 
     # print("getting mean pixel values")
     # mean, std = get_mean_pixel_values([trainDir, valDir, testDir])

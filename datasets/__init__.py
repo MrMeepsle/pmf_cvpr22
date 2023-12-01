@@ -1,5 +1,7 @@
 import os
 import random
+from pathlib import Path
+
 import torch
 import numpy as np
 from functools import partial
@@ -41,6 +43,11 @@ def get_sets(args):
     trainTransform, valTransform, inputW, inputH, \
         trainDir, valDir, testDir, episodeJson, nbCls = \
         dataset_setting(args.nSupport, args.img_size)
+    if args.dataset_path:
+        trainDir = Path(args.dataset_path).joinpath(trainDir.name)
+        valDir = Path(args.dataset_path).joinpath(valDir.name)
+        testDir = Path(args.dataset_path).joinpath(testDir.name)
+        episodeJson = Path(args.dataset_path).joinpath(episodeJson.name)
 
     trainSet = EpisodeDataset(imgDir=trainDir,
                               nCls=args.nClsEpisode,
@@ -52,11 +59,19 @@ def get_sets(args):
                               nEpisode=args.nEpisode)
 
     # episodeJson is only used here
-    valSet = EpisodeJSONDataset(episodeJson,
-                                valDir,
-                                inputW,
-                                inputH,
-                                valTransform)
+    # valSet = EpisodeJSONDataset(episodeJson,
+    #                             valDir,
+    #                             inputW,
+    #                             inputH,
+    #                             valTransform)
+    valSet = EpisodeDataset(imgDir=valDir,
+                            nCls=args.nClsEpisode,
+                            nSupport=args.nSupport,
+                            nQuery=args.nQuery,
+                            transform=trainTransform,
+                            inputW=inputW,
+                            inputH=inputH,
+                            nEpisode=args.nEpisode)
 
     testSet = EpisodeDataset(imgDir=testDir,
                              nCls=args.nClsEpisode,

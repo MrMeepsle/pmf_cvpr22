@@ -110,7 +110,7 @@ class EpisodeJSONDataset(data.Dataset):
     def __init__(self, episodeJson, imgDir, inputW, inputH, valTransform):
         with open(episodeJson, 'r') as f:
             self.episodeInfo = json.load(f)
-        print(self.episodeInfo)
+        # print(self.episodeInfo)
 
         self.imgDir = imgDir
         self.nEpisode = len(self.episodeInfo)

@@ -18,7 +18,7 @@ def get_args_parser():
     parser.add_argument('--seed', default=0, type=int)
 
     # Dataset parameters
-    parser.add_argument('--data-path', default='/datasets01/imagenet_full_size/061417/', type=str,
+    parser.add_argument('--dataset_path', default='/datasets01/imagenet_full_size/061417/', type=str,
                         help='dataset path')
     parser.add_argument('--pretrained-checkpoint-path', default='.', type=str,
                         help='path which contains the directories pretrained_ckpts and pretrained_ckpts_converted')
