@@ -52,10 +52,10 @@ def dataset_setting(nSupport, img_size=80):
     std = [0.2010, 0.1880, 0.2029]
     normalize = transforms.Normalize(mean=mean, std=std)
     trainTransform = transforms.Compose(
-        [transforms.RandomResizedCrop((img_size, img_size), scale=(0.05, 1.0)),
-         transforms.RandomPerspective(distortion_scale=0.2, p=.2),
+        [transforms.RandomResizedCrop((img_size, img_size), scale=(0.9, 1.0)),
+         transforms.RandomPerspective(distortion_scale=0.8, p=.5),
          transforms.RandomRotation(degrees=(-30, 30)),
-         transforms.ColorJitter(brightness=.5, hue=.4),
+         transforms.ColorJitter(brightness=.6, hue=.4),
          transforms.ToTensor(),
          normalize
          ])
