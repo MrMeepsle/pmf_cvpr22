@@ -13,22 +13,30 @@ class ProtoNet(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
         # backbone
-        self.backbone = backbone
+        self.backbone = backbone  # Hacks
+
+    def cos_dist(self, w, f):
+        """
+                w.shape = B, nC, d
+                f.shape = B, M, d
+                """
+        f = F.normalize(f, p=2, dim=f.dim() - 1, eps=1e-12)
+        w = F.normalize(w, p=2, dim=w.dim() - 1, eps=1e-12)
+
+        cls_scores = f @ w.transpose(1, 2)  # B, M, nC
+        return cls_scores
 
     def cos_classifier(self, w, f):
         """
         w.shape = B, nC, d
         f.shape = B, M, d
         """
-        f = F.normalize(f, p=2, dim=f.dim() - 1, eps=1e-12)
-        w = F.normalize(w, p=2, dim=w.dim() - 1, eps=1e-12)
-
-        cls_scores = f @ w.transpose(1, 2)  # B, M, nC
+        cls_scores = self.cos_dist(w, f)
         cls_scores = self.scale_cls * (cls_scores + self.bias)
         cls_scores = self.sigmoid(cls_scores)
         return cls_scores
 
-    def predict_from_prototypes(self, supp_x, supp_y, x):
+    def predict_from_prototypes(self, supp_x, supp_y, x, learnable_cos_dist=True):
         """
         supp_x.shape = [B, nSupp, C, H, W]
         supp_y.shape = [B, nSupp]
@@ -49,7 +57,10 @@ class ProtoNet(nn.Module):
         feat = self.backbone.forward(x.view(-1, C, H, W))
         feat = feat.view(B, x.shape[1], -1)  # B, nQry, d
 
-        predictions = self.cos_classifier(prototypes, feat)  # B, nQry, nC
+        if learnable_cos_dist:
+            predictions = self.cos_classifier(prototypes, feat)  # B, nQry, nC
+        else:
+            predictions = self.cos_dist(prototypes, feat)
         return predictions
 
     @staticmethod
@@ -68,7 +79,8 @@ class ProtoNet(nn.Module):
     # Assume y_class is standard
     def get_k_closest(self, class_support_images, support_images, support_labels, class_x, x_rest, y_rest, k=5):
         predictions = torch.mean(torch.nan_to_num(
-            self.predict_from_prototypes(support_images, support_labels, class_support_images)), dim=1)
+            self.predict_from_prototypes(support_images, support_labels, class_support_images,
+                                         learnable_cos_dist=False)), dim=1)
         _, closest_classes = torch.topk(predictions, k, dim=1)
 
         support_filter = ((closest_classes.view(-1, 1) - support_labels.view(-1)).transpose(-1, -2) == 0).sum(
