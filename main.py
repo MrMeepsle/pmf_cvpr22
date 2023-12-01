@@ -134,7 +134,7 @@ def main(args):
     ##############################################
     # Test
     test_stats = evaluate(data_loader_val, model, criterion, device, args.seed + 10000)
-    print(f"Accuracy of the network on dataset_val: {test_stats['acc1']:.1f}%")
+    print(f"Accuracy of the network on dataset_val: {test_stats['accuracy']:.1f}%")
     if args.output_dir and utils.is_main_process():
         test_stats['epoch'] = -1
         with (output_dir / "log.txt").open("a") as f:
@@ -146,7 +146,7 @@ def main(args):
     ##############################################
     # Training
     if utils.is_main_process():
-        print("things")
+        print("Starting Writer:")
         writer = SummaryWriter(log_dir=str(output_dir))
         writer.flush()
     else:
@@ -154,7 +154,7 @@ def main(args):
 
     print(f"Start training for {args.epochs} epochs")
     start_time = time.time()
-    max_accuracy = test_stats['acc1']
+    max_accuracy = test_stats['accuracy']
 
     for epoch in range(args.start_epoch, args.epochs):
 
@@ -194,11 +194,11 @@ def main(args):
                     state_dict['scalar'] = loss_scaler.state_dict()
                 utils.save_on_master(state_dict, checkpoint_path)
 
-                if test_stats["acc1"] <= max_accuracy:
+                if test_stats['accuracy'] <= max_accuracy:
                     break  # do not save best.pth
 
-        print(f"Accuracy of the network on dataset_val: {test_stats['acc1']:.1f}%")
-        max_accuracy = max(max_accuracy, test_stats["acc1"])
+        print(f"Accuracy of the network on dataset_val: {test_stats['accuracy']:.1f}%")
+        max_accuracy = max(max_accuracy, test_stats['accuracy'])
         print(f'Max accuracy: {max_accuracy:.2f}%')
 
         if args.output_dir and utils.is_main_process():

@@ -1,5 +1,6 @@
 import os
 import torch
+import torch.nn.functional as F
 import torch.utils.data as data
 import PIL.Image as Image
 import numpy as np
@@ -39,19 +40,13 @@ class EpisodeDataset(data.Dataset):
         self.nEpisode = nEpisode
 
         floatType = torch.FloatTensor
-        intType = torch.LongTensor
 
         self.tensorSupport = floatType(nCls * nSupport, 3, inputW, inputH)
-        self.labelSupport = intType(nCls * nSupport)
+        self.labelSupport = F.one_hot(torch.repeat_interleave(torch.arange(0, nCls), nSupport, dim=0))
         self.tensorQuery = floatType(nCls * nQuery, 3, inputW, inputH)
-        print(self.tensorQuery.shape)
-        self.labelQuery = intType(nCls * nQuery)
-        self.imgTensor = floatType(3, inputW, inputH)
+        self.labelQuery = F.one_hot(torch.repeat_interleave(torch.arange(0, nCls), nQuery, dim=0))
 
-        # labels {0, ..., nCls-1}
-        for i in range(self.nCls):
-            self.labelSupport[i * self.nSupport: (i + 1) * self.nSupport] = i
-            self.labelQuery[i * self.nQuery: (i + 1) * self.nQuery] = i
+        self.imgTensor = floatType(3, inputW, inputH)
 
     def __len__(self):
         return self.nEpisode

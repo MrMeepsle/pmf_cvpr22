@@ -59,19 +59,11 @@ def get_sets(args):
                               nEpisode=args.nEpisode)
 
     # episodeJson is only used here
-    # valSet = EpisodeJSONDataset(episodeJson,
-    #                             valDir,
-    #                             inputW,
-    #                             inputH,
-    #                             valTransform)
-    valSet = EpisodeDataset(imgDir=valDir,
-                            nCls=args.nClsEpisode,
-                            nSupport=args.nSupport,
-                            nQuery=args.nQuery,
-                            transform=trainTransform,
-                            inputW=inputW,
-                            inputH=inputH,
-                            nEpisode=args.nEpisode)
+    valSet = EpisodeJSONDataset(episodeJson,
+                                valDir,
+                                inputW,
+                                inputH,
+                                valTransform)
 
     testSet = EpisodeDataset(imgDir=testDir,
                              nCls=args.nClsEpisode,

@@ -3,14 +3,15 @@ import sys
 import warnings
 from typing import Iterable, Optional
 
+import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from timm.data import Mixup
-from timm.utils import accuracy, ModelEma
+from timm.utils import ModelEma
 
 import utils.deit_util as utils
-from utils import AverageMeter, to_device
+from utils import to_device
 
 
 def train_one_epoch(data_loader: Iterable,
@@ -19,14 +20,13 @@ def train_one_epoch(data_loader: Iterable,
                     optimizer: torch.optim.Optimizer,
                     epoch: int,
                     device: torch.device,
-                    loss_scaler = None,
+                    loss_scaler=None,
                     fp16: bool = False,
-                    max_norm: float = 0, # clip_grad
+                    max_norm: float = 0,  # clip_grad
                     model_ema: Optional[ModelEma] = None,
                     mixup_fn: Optional[Mixup] = None,
                     writer: Optional[SummaryWriter] = None,
                     set_training_mode=True):
-
     global_step = epoch * len(data_loader)
 
     metric_logger = utils.MetricLogger(delimiter="  ")
@@ -50,7 +50,7 @@ def train_one_epoch(data_loader: Iterable,
             output = model(SupportTensor, SupportLabel, x)
 
         output = output.view(x.shape[0] * x.shape[1], -1)
-        y = y.view(-1)
+        y = y.view(y.shape[0] * y.shape[1], -1).float()
         loss = criterion(output, y)
         loss_value = loss.item()
 
@@ -76,7 +76,7 @@ def train_one_epoch(data_loader: Iterable,
         lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(loss=loss_value)
         metric_logger.update(lr=lr)
-        metric_logger.update(n_ways=SupportLabel.max()+1)
+        metric_logger.update(n_ways=SupportLabel.max() + 1)
         metric_logger.update(n_imgs=SupportTensor.shape[1] + x.shape[1])
 
         # tensorboard
@@ -102,18 +102,24 @@ def evaluate(data_loaders, model, criterion, device, seed=None, ep=None):
             seed_j = seed + j if seed else None
             test_stats = _evaluate(data_loader, model, criterion, device, seed_j)
             test_stats_lst[source] = test_stats
-            test_stats_glb[source] = test_stats['acc1']
+            test_stats_glb[source] = test_stats["accuracy"]
 
         # apart from individual's acc1, accumulate metrics over all domains to compute mean
         for k in test_stats_lst[source].keys():
             test_stats_glb[k] = torch.tensor([test_stats[k] for test_stats in test_stats_lst.values()]).mean().item()
 
         return test_stats_glb
-    elif isinstance(data_loaders, torch.utils.data.DataLoader): # when args.eval = True
+    elif isinstance(data_loaders, torch.utils.data.DataLoader):  # when args.eval = True
         return _evaluate(data_loaders, model, criterion, device, seed, ep)
     else:
         warnings.warn(f'The structure of {data_loaders} is not recognizable.')
         return _evaluate(data_loaders, model, criterion, device, seed)
+
+
+def accuracy(output, labels):
+    scores = torch.nn.functional.softmax(output, dim=1)
+    predicted_labels = (scores >= 0.5)
+    return torch.mean((predicted_labels == labels).float())
 
 
 @torch.no_grad()
@@ -121,8 +127,7 @@ def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('n_ways', utils.SmoothedValue(window_size=1, fmt='{value:d}'))
     metric_logger.add_meter('n_imgs', utils.SmoothedValue(window_size=1, fmt='{value:d}'))
-    metric_logger.add_meter('acc1', utils.SmoothedValue(window_size=len(data_loader.dataset)))
-    metric_logger.add_meter('acc5', utils.SmoothedValue(window_size=len(data_loader.dataset)))
+    metric_logger.add_meter("accuracy", utils.SmoothedValue(window_size=len(data_loader.dataset)))
     header = 'Test:'
 
     # switch to evaluation mode
@@ -144,23 +149,23 @@ def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
             output = model(SupportTensor, SupportLabel, x)
 
         output = output.view(x.shape[0] * x.shape[1], -1)
-        y = y.view(-1)
+        y = y.view(y.shape[0] * y.shape[1], -1).float()
         loss = criterion(output, y)
-        acc1, acc5 = accuracy(output, y, topk=(1, 5))
+
+        acc = accuracy(output, y)
 
         batch_size = x.shape[0]
         metric_logger.update(loss=loss.item())
-        metric_logger.meters['acc1'].update(acc1.item(), n=batch_size)
-        metric_logger.meters['acc5'].update(acc5.item(), n=batch_size)
-        metric_logger.update(n_ways=SupportLabel.max()+1)
+        metric_logger.meters["accuracy"].update(acc.item(), n=batch_size)
+        metric_logger.update(n_ways=SupportLabel.max() + 1)
         metric_logger.update(n_imgs=SupportTensor.shape[1] + x.shape[1])
 
     # gather the stats from all processes
     metric_logger.synchronize_between_processes()
-    print('* Acc@1 {top1.global_avg:.3f} Acc@5 {top5.global_avg:.3f} loss {losses.global_avg:.3f}'
-          .format(top1=metric_logger.acc1, top5=metric_logger.acc5, losses=metric_logger.loss))
+    print('* Acc@1 {top1.global_avg:.3f} loss {losses.global_avg:.3f}'
+          .format(top1=metric_logger.accuracy, losses=metric_logger.loss))
 
     ret_dict = {k: meter.global_avg for k, meter in metric_logger.meters.items()}
-    ret_dict['acc_std'] = metric_logger.meters['acc1'].std
+    ret_dict['acc_std'] = metric_logger.meters["accuracy"].std
 
     return ret_dict
