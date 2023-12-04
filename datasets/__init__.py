@@ -14,7 +14,7 @@ from .meta_h5_dataset import FullMetaDatasetH5
 from .meta_dataset.utils import Split
 
 
-def get_sets(args):
+def get_sets(args, model):
     if args.dataset == 'cifar_fs':
         from .cifar_fs import dataset_setting
     elif args.dataset == 'custom':
@@ -56,14 +56,26 @@ def get_sets(args):
                               transform=trainTransform,
                               inputW=inputW,
                               inputH=inputH,
-                              nEpisode=args.nEpisode)
+                              nEpisode=args.nEpisode,
+                              model=model,
+                              pre_select_classes=args.pre_select_classes)
 
-    # episodeJson is only used here
-    valSet = EpisodeJSONDataset(episodeJson,
-                                valDir,
-                                inputW,
-                                inputH,
-                                valTransform)
+    # # episodeJson is only used here
+    # valSet = EpisodeJSONDataset(episodeJson,
+    #                             valDir,
+    #                             inputW,
+    #                             inputH,
+    #                             valTransform)
+    valSet = EpisodeDataset(imgDir=valDir,
+                            nCls=args.nClsEpisode,
+                            nSupport=args.nSupport,
+                            nQuery=args.nQuery,
+                            transform=valTransform,
+                            inputW=inputW,
+                            inputH=inputH,
+                            nEpisode=args.nEpisode,
+                            model=model,
+                            pre_select_classes=args.pre_select_classes)
 
     testSet = EpisodeDataset(imgDir=testDir,
                              nCls=args.nClsEpisode,
@@ -72,17 +84,19 @@ def get_sets(args):
                              transform=valTransform,
                              inputW=inputW,
                              inputH=inputH,
-                             nEpisode=args.nEpisode)
+                             nEpisode=args.nEpisode,
+                             model=model,
+                             pre_select_classes=args.pre_select_classes)
 
     return trainSet, valSet, testSet
 
 
-def get_loaders(args, num_tasks, global_rank):
+def get_loaders(args, num_tasks, global_rank, model):
     # datasets
     if args.eval:
-        _, _, dataset_vals = get_sets(args)
+        _, _, dataset_vals = get_sets(args, model)
     else:
-        dataset_train, dataset_vals, _ = get_sets(args)
+        dataset_train, dataset_vals, _ = get_sets(args, model)
 
     # Worker init function
     if 'meta_dataset' in args.dataset:  # meta_dataset & meta_dataset_h5
@@ -123,11 +137,12 @@ def get_loaders(args, num_tasks, global_rank):
         data_loader = torch.utils.data.DataLoader(
             dataset_val, sampler=sampler_val,
             batch_size=1,
-            num_workers=3,  # more workers can take too much CPU
-            pin_memory=args.pin_mem,
+            num_workers=args.num_workers,  # more workers can take too much CPU
+            pin_memory=False,
             drop_last=False,
             worker_init_fn=worker_init_fn,
-            generator=generator
+            generator=generator,
+            persistent_workers=False
         )
         data_loader_val[source] = data_loader
 

@@ -1,4 +1,6 @@
 import os
+import random
+
 import torch
 import torch.nn.functional as F
 import torch.utils.data as data
@@ -28,11 +30,13 @@ class EpisodeDataset(data.Dataset):
     :param int inputH: input image size, dimension H;
     """
 
-    def __init__(self, imgDir, nCls, nSupport, nQuery, transform, inputW, inputH, nEpisode=2000):
+    def __init__(self, imgDir, nCls, nSupport, nQuery, transform, inputW, inputH, nEpisode=2000,
+                 model=None, pre_select_classes=False):
         super().__init__()
 
         self.imgDir = imgDir
         self.clsList = os.listdir(imgDir)
+        self.prototype_dict = {class_: None for class_ in self.clsList}
         self.nCls = nCls
         self.nSupport = nSupport
         self.nQuery = nQuery
@@ -43,10 +47,24 @@ class EpisodeDataset(data.Dataset):
 
         self.tensorSupport = floatType(nCls * nSupport, 3, inputW, inputH)
         self.labelSupport = F.one_hot(torch.repeat_interleave(torch.arange(0, nCls), nSupport, dim=0))
-        self.tensorQuery = floatType(nCls * nQuery, 3, inputW, inputH)
+        self.tensorQuery = floatType((nCls + 1) * nQuery, 3, inputW, inputH)
         self.labelQuery = F.one_hot(torch.repeat_interleave(torch.arange(0, nCls), nQuery, dim=0))
+        # Add zeros to make clear this one does not belong to any class
+        self.labelQuery = torch.concat((self.labelQuery, torch.zeros(nQuery, nCls)), dim=0)
 
         self.imgTensor = floatType(3, inputW, inputH)
+
+        self.pre_select_classes = pre_select_classes
+        if self.pre_select_classes and model is not None:
+            self.model = model
+        elif self.pre_select_classes and model is None:
+            raise Exception("Cannot pre-select classes without model")
+
+    def update_prototypes(self, class_names, prototypes):
+        class_names = np.asarray(class_names).transpose()
+        for class_list, prototype_list in zip(class_names, prototypes):
+            for class_, prototype in zip(class_list, prototype_list):
+                self.prototype_dict[class_] = prototype
 
     def __len__(self):
         return self.nEpisode
@@ -61,19 +79,50 @@ class EpisodeDataset(data.Dataset):
                        'QueryLabel': 1 x nQuery}
         """
         # select nCls from clsList
-        clsEpisode = np.random.choice(self.clsList, self.nCls, replace=False)
-        for i, cls in enumerate(clsEpisode):
+        temp_prototype_dict = self.prototype_dict.copy()
+        episode_class = random.choice(list(temp_prototype_dict.keys()))
+        episode_prototype = temp_prototype_dict.pop(episode_class)
+        episode_classes = None
+        if episode_prototype is not None and self.pre_select_classes is True:
+            temp_prototype_dict_1 = {k: v for k, v in temp_prototype_dict.items() if v is not None}
+            if len(temp_prototype_dict_1) == (len(self.prototype_dict) - 1):
+                # Only compare prototypes when prototypes are calculated
+                other_prototypes_tensor = torch.empty(size=(len(temp_prototype_dict), episode_prototype.shape[0]),
+                                                      dtype=torch.float, device='cuda:0', requires_grad=False)
+                for i, key in enumerate(temp_prototype_dict.keys()):
+                    other_prototypes_tensor[i] = temp_prototype_dict[key]
+
+                # Give input a batch size of 1. Cos Classifier expects batched input
+                B = 1
+                episode_prototype = episode_prototype.view(B, 1, episode_prototype.shape[0])
+                other_prototypes_tensor = other_prototypes_tensor.view(B, other_prototypes_tensor.shape[0],
+                                                                       other_prototypes_tensor.shape[1])
+
+                with torch.no_grad():
+                    with torch.cuda.amp.autocast():
+                        class_similarity = self.model.cos_classifier(episode_prototype, other_prototypes_tensor)
+                        _, top_indices = torch.topk(class_similarity.flatten(), self.nCls)
+
+                episode_classes = [episode_class] + [list(temp_prototype_dict.keys())[idx] for idx in
+                                                     top_indices.tolist()]
+        if episode_classes is None:
+            episode_classes = random.sample(list(temp_prototype_dict.keys()), self.nCls)
+            episode_classes.append(episode_class)
+
+        # Add one extra because you want a query class that's not in the support list
+        for i, cls in enumerate(episode_classes):
             clsPath = os.path.join(self.imgDir, cls)
             imgList = os.listdir(clsPath)
 
             # in total nQuery+nSupport images from each class
             imgCls = np.random.choice(imgList, self.nQuery + self.nSupport, replace=False)
 
-            for j in range(self.nSupport):
-                img = imgCls[j]
-                imgPath = os.path.join(clsPath, img)
-                I = PilLoaderRGB(imgPath)
-                self.tensorSupport[i * self.nSupport + j] = self.imgTensor.copy_(self.transform(I))
+            if i < len(episode_classes) - 1:
+                for j in range(self.nSupport):
+                    img = imgCls[j]
+                    imgPath = os.path.join(clsPath, img)
+                    I = PilLoaderRGB(imgPath)
+                    self.tensorSupport[i * self.nSupport + j] = self.imgTensor.copy_(self.transform(I))
 
             for j in range(self.nQuery):
                 img = imgCls[j + self.nSupport]
@@ -83,12 +132,13 @@ class EpisodeDataset(data.Dataset):
 
         ## Random permutation. Though this is not necessary in our approach
         permSupport = torch.randperm(self.nCls * self.nSupport)
-        permQuery = torch.randperm(self.nCls * self.nQuery)
+        permQuery = torch.randperm((self.nCls + 1) * self.nQuery)
 
         return (self.tensorSupport[permSupport],
                 self.labelSupport[permSupport],
                 self.tensorQuery[permQuery],
-                self.labelQuery[permQuery])
+                self.labelQuery[permQuery],
+                episode_classes)
 
 
 class EpisodeJSONDataset(data.Dataset):

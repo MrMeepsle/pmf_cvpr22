@@ -7,6 +7,8 @@ def get_args_parser():
     # General
     parser.add_argument('--batch-size', default=1, type=int)
     parser.add_argument('--num_classes', default=1000, type=int)
+    parser.add_argument('--pre_select_classes', action='store_true', default=False,
+                        help='Pre-select classes based on a model distance metric')
     parser.add_argument('--epochs', default=100, type=int)
     parser.add_argument('--fp16', action='store_true',
                         help="Whether to use 16-bit float precision instead of 32-bit")
@@ -41,18 +43,25 @@ def get_args_parser():
     # MetaDataset parameters
     parser.add_argument('--image_size', type=int, default=128,
                         help='Images will be resized to this value')
-    parser.add_argument('--base_sources', nargs="+", default=['aircraft', 'cu_birds', 'dtd', 'fungi', 'ilsvrc_2012', 'omniglot', 'quickdraw', 'vgg_flower'],
+    parser.add_argument('--base_sources', nargs="+",
+                        default=['aircraft', 'cu_birds', 'dtd', 'fungi', 'ilsvrc_2012', 'omniglot', 'quickdraw',
+                                 'vgg_flower'],
                         help='List of datasets to use for training')
-    parser.add_argument('--val_sources', nargs="+", default=['aircraft', 'cu_birds', 'dtd', 'fungi', 'ilsvrc_2012', 'omniglot', 'quickdraw', 'vgg_flower'],
+    parser.add_argument('--val_sources', nargs="+",
+                        default=['aircraft', 'cu_birds', 'dtd', 'fungi', 'ilsvrc_2012', 'omniglot', 'quickdraw',
+                                 'vgg_flower'],
                         help='List of datasets to use for validation')
-    parser.add_argument('--test_sources', nargs="+", default=['traffic_sign', 'mscoco', 'ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd', 'quickdraw', 'fungi', 'vgg_flower'],
+    parser.add_argument('--test_sources', nargs="+",
+                        default=['traffic_sign', 'mscoco', 'ilsvrc_2012', 'omniglot', 'aircraft', 'cu_birds', 'dtd',
+                                 'quickdraw', 'fungi', 'vgg_flower'],
                         help='List of datasets to use for meta-testing')
     parser.add_argument('--shuffle', type=bool, default=True,
                         help='Whether or not to shuffle data for TFRecordDataset')
-    parser.add_argument('--train_transforms', nargs="+", default=['random_resized_crop', 'jitter', 'random_flip', 'to_tensor', 'normalize'],
-                        help='Transforms applied to training data',)
+    parser.add_argument('--train_transforms', nargs="+",
+                        default=['random_resized_crop', 'jitter', 'random_flip', 'to_tensor', 'normalize'],
+                        help='Transforms applied to training data', )
     parser.add_argument('--test_transforms', nargs="+", default=['resize', 'center_crop', 'to_tensor', 'normalize'],
-                        help='Transforms applied to test data',)
+                        help='Transforms applied to test data', )
     parser.add_argument('--num_ways', type=int, default=None,
                         help='Set it if you want a fixed # of ways per task')
     parser.add_argument('--num_support', type=int, default=None,
@@ -87,16 +96,18 @@ def get_args_parser():
                               and instead sample categories uniformly.')
 
     # CDFSL parameters
-    parser.add_argument('--test_n_way'  , default=5, type=int,  help='class num to classify for testing (validation) ')
-    parser.add_argument('--n_shot'      , default=5, type=int,  help='number of labeled data in each class, same as n_support')
-    parser.add_argument('--cdfsl_domains', nargs="+", default=['EuroSAT', 'ISIC', 'CropDisease', 'ChestX'], help='CDFSL datasets')
+    parser.add_argument('--test_n_way', default=5, type=int, help='class num to classify for testing (validation) ')
+    parser.add_argument('--n_shot', default=5, type=int, help='number of labeled data in each class, same as n_support')
+    parser.add_argument('--cdfsl_domains', nargs="+", default=['EuroSAT', 'ISIC', 'CropDisease', 'ChestX'],
+                        help='CDFSL datasets')
 
     # Model params
     parser.add_argument('--arch', default='dino_base_patch16_224', type=str,
                         help='Architecture of the backbone.')
     parser.add_argument('--patch_size', default=16, type=int, help='Patch resolution of the model.')
     parser.add_argument('--pretrained_weights', default='', type=str, help="Path to pretrained weights to evaluate.")
-    parser.add_argument("--checkpoint_key", default="teacher", type=str, help='Key to use in the checkpoint (example: "teacher")')
+    parser.add_argument("--checkpoint_key", default="teacher", type=str,
+                        help='Key to use in the checkpoint (example: "teacher")')
     parser.add_argument('--unused_params', action='store_true')
     parser.add_argument('--no-pretrain', action='store_true')
 
@@ -106,7 +117,8 @@ def get_args_parser():
     parser.add_argument('--num_adapters', default=1, type=int, help='Number of adapter tokens')
     parser.add_argument('--ada_steps', default=40, type=int, help='Number of feature adaptation steps')
     parser.add_argument('--ada_lr', default=5e-2, type=float, help='Learning rate of feature adaptation')
-    parser.add_argument('--aug_prob', default=0.9, type=float, help='Probability of applying data augmentation during meta-testing')
+    parser.add_argument('--aug_prob', default=0.9, type=float,
+                        help='Probability of applying data augmentation during meta-testing')
     parser.add_argument('--aug_types', nargs="+", default=['color', 'translation'],
                         help='color, offset, offset_h, offset_v, translation, cutout')
 

@@ -40,19 +40,21 @@ def train_one_epoch(data_loader: Iterable,
 
     for batch in metric_logger.log_every(data_loader, print_freq, header):
         batch = to_device(batch, device)
-        SupportTensor, SupportLabel, x, y = batch
+        SupportTensor, SupportLabel, x, y, class_names = batch
 
         if mixup_fn is not None:
             x, y = mixup_fn(x, y)
 
         # forward
         with torch.cuda.amp.autocast(fp16):
-            output = model(SupportTensor, SupportLabel, x)
+            output, prototypes = model(SupportTensor, SupportLabel, x)
 
         output = output.view(x.shape[0] * x.shape[1], -1)
         y = y.view(y.shape[0] * y.shape[1], -1).float()
         loss = criterion(output, y)
         loss_value = loss.item()
+
+        data_loader.dataset.update_prototypes(class_names, prototypes)
 
         if not math.isfinite(loss_value):
             print("Loss is {}, stopping training".format(loss_value))
@@ -142,17 +144,18 @@ def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
                 break
 
         batch = to_device(batch, device)
-        SupportTensor, SupportLabel, x, y = batch
+        SupportTensor, SupportLabel, x, y, class_names = batch
 
         # compute output
         with torch.cuda.amp.autocast():
-            output = model(SupportTensor, SupportLabel, x)
+            output, prototypes = model(SupportTensor, SupportLabel, x)
 
         output = output.view(x.shape[0] * x.shape[1], -1)
         y = y.view(y.shape[0] * y.shape[1], -1).float()
         loss = criterion(output, y)
-
         acc = accuracy(output, y)
+
+        data_loader.dataset.update_prototypes(class_names, prototypes)
 
         batch_size = x.shape[0]
         metric_logger.update(loss=loss.item())

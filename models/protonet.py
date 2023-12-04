@@ -46,4 +46,4 @@ class ProtoNet(nn.Module):
         feat = feat.view(B, x.shape[1], -1)  # B, nQry, d
 
         logits = self.cos_classifier(prototypes, feat)  # B, nQry, nC
-        return logits
+        return logits, prototypes

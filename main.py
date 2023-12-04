@@ -13,7 +13,6 @@ from torch.utils.tensorboard import SummaryWriter
 from timm.data import Mixup
 from timm.loss import LabelSmoothingCrossEntropy, SoftTargetCrossEntropy
 from timm.scheduler import create_scheduler
-from timm.optim import create_optimizer
 from timm.utils import NativeScaler, get_state_dict, ModelEma
 
 from engine import train_one_epoch, evaluate
@@ -41,12 +40,6 @@ def main(args):
         output_dir.mkdir(parents=True, exist_ok=True)
         with (output_dir / "log.txt").open("a") as f:
             f.write(" ".join(sys.argv) + "\n")
-
-    ##############################################
-    # Data loaders
-    num_tasks = utils.get_world_size()
-    global_rank = utils.get_rank()
-    data_loader_train, data_loader_val = get_loaders(args, num_tasks, global_rank)
 
     ##############################################
     # Mixup regularization (by default OFF)
@@ -81,6 +74,12 @@ def main(args):
         model_without_ddp = model.module
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print('number of params:', n_parameters)
+
+    ##############################################
+    # Data loaders
+    num_tasks = utils.get_world_size()
+    global_rank = utils.get_rank()
+    data_loader_train, data_loader_val = get_loaders(args, num_tasks, global_rank, model)
 
     ##############################################
     # Optimizer & scheduler & criterion
@@ -148,7 +147,6 @@ def main(args):
     if utils.is_main_process():
         print("Starting Writer:")
         writer = SummaryWriter(log_dir=str(output_dir))
-        writer.flush()
     else:
         writer = None
 
@@ -169,14 +167,14 @@ def main(args):
         test_stats = evaluate(data_loader_val, model, criterion, device, args.seed + 10000)
 
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
-                     **{f'test_{k}': v for k, v in test_stats.items()},
+                     **{f'val_{k}': v for k, v in test_stats.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
 
         for k, v in train_stats.items():
-            writer.add_scalar(f'{k}/train', v, epoch)
+            writer.add_scalar(f'train/{k}', v, epoch)
         for k, v in test_stats.items():
-            writer.add_scalar(f'{k}/test', v, epoch)
+            writer.add_scalar(f'val/{k}', v, epoch)
         writer.flush()
 
         if args.output_dir:
