@@ -118,8 +118,11 @@ def evaluate(data_loaders, model, criterion, device, seed=None, ep=None):
         return _evaluate(data_loaders, model, criterion, device, seed)
 
 
-def accuracy(output, labels):
-    scores = torch.nn.functional.softmax(output, dim=1)
+def accuracy(output, labels, sigmoid=False):
+    if sigmoid:
+        scores = output
+    else:
+        scores = torch.nn.functional.softmax(output, dim=1)
     predicted_labels = (scores >= 0.5)
     return torch.mean((predicted_labels == labels).float())
 
@@ -153,7 +156,7 @@ def _evaluate(data_loader, model, criterion, device, seed=None, ep=None):
         output = output.view(x.shape[0] * x.shape[1], -1)
         y = y.view(y.shape[0] * y.shape[1], -1).float()
         loss = criterion(output, y)
-        acc = accuracy(output, y)
+        acc = accuracy(output, y, sigmoid=True)
 
         data_loader.dataset.update_prototypes(class_names, prototypes)
 

@@ -106,7 +106,7 @@ def main(args):
     elif args.smoothing:
         criterion = LabelSmoothingCrossEntropy(smoothing=args.smoothing)
     else:
-        criterion = torch.nn.CrossEntropyLoss()
+        criterion = torch.nn.BCELoss()
 
     ##############################################
     # Resume training from ckpt (model, optimizer, lr_scheduler, epoch, model_ema, scaler)

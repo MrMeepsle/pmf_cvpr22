@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class ProtoNet(nn.Module):
-    def __init__(self, backbone):
+    def __init__(self, backbone, sigmoid=True):
         super().__init__()
 
         # bias & scale of cosine classifier
@@ -13,6 +13,9 @@ class ProtoNet(nn.Module):
 
         # backbone
         self.backbone = backbone
+        self.sigmoid = None
+        if sigmoid:
+            self.sigmoid = torch.nn.Sigmoid()
 
     def cos_classifier(self, w, f):
         """
@@ -24,6 +27,9 @@ class ProtoNet(nn.Module):
 
         cls_scores = f @ w.transpose(1, 2)  # B, M, nC
         cls_scores = self.scale_cls * (cls_scores + self.bias)
+        if self.sigmoid is not None:
+            cls_scores = self.sigmoid(cls_scores)
+
         return cls_scores
 
     def forward(self, supp_x, supp_y, x):
