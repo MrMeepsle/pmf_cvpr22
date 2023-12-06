@@ -50,11 +50,11 @@ class EpisodeDataset(data.Dataset):
 
         self.labelQuery = F.one_hot(torch.repeat_interleave(torch.arange(0, nCls), nQuery, dim=0))
         # Add zeros to define classes that don't belong to any labels
-        if len(self.clsList) < nCls * 2:
-            non_labels = torch.zeros(nQuery * (len(self.clsList) - nCls), nCls)
-        else:
-            non_labels = torch.zeros(nQuery * nCls, nCls)
-        self.labelQuery = torch.concat((self.labelQuery, non_labels), dim=0)
+        # if len(self.clsList) < nCls * 2:
+        #     non_labels = torch.zeros(nQuery * (len(self.clsList) - nCls), nCls)
+        # else:
+        #     non_labels = torch.zeros(nQuery * nCls, nCls)
+        # self.labelQuery = torch.concat((self.labelQuery, non_labels), dim=0)
         self.tensorQuery = floatType(self.labelQuery.shape[0], 3, inputW, inputH)
 
         self.imgTensor = floatType(3, inputW, inputH)
@@ -139,7 +139,7 @@ class EpisodeDataset(data.Dataset):
 
         ## Random permutation. Though this is not necessary in our approach
         permSupport = torch.randperm(self.nCls * self.nSupport)
-        permQuery = torch.randperm((self.nCls + 1) * self.nQuery)
+        permQuery = torch.randperm(len(episode_classes) * self.nQuery)
 
         return (self.tensorSupport[permSupport],
                 self.labelSupport[permSupport],
