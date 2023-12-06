@@ -47,10 +47,15 @@ class EpisodeDataset(data.Dataset):
 
         self.tensorSupport = floatType(nCls * nSupport, 3, inputW, inputH)
         self.labelSupport = F.one_hot(torch.repeat_interleave(torch.arange(0, nCls), nSupport, dim=0))
-        self.tensorQuery = floatType((nCls + 1) * nQuery, 3, inputW, inputH)
+
         self.labelQuery = F.one_hot(torch.repeat_interleave(torch.arange(0, nCls), nQuery, dim=0))
-        # Add zeros to make clear this one does not belong to any class
-        self.labelQuery = torch.concat((self.labelQuery, torch.zeros(nQuery, nCls)), dim=0)
+        # Add zeros to define classes that don't belong to any labels
+        if len(self.clsList) < nCls * 2:
+            non_labels = torch.zeros(nQuery * (len(self.clsList) - nCls), nCls)
+        else:
+            non_labels = torch.zeros(nQuery * nCls, nCls)
+        self.labelQuery = torch.concat((self.labelQuery, non_labels), dim=0)
+        self.tensorQuery = floatType(self.labelQuery.shape[0], 3, inputW, inputH)
 
         self.imgTensor = floatType(3, inputW, inputH)
 
@@ -101,12 +106,14 @@ class EpisodeDataset(data.Dataset):
                 with torch.no_grad():
                     with torch.cuda.amp.autocast():
                         class_similarity = self.model.cos_classifier(episode_prototype, other_prototypes_tensor)
-                        _, top_indices = torch.topk(class_similarity.flatten(), self.nCls)
+                        _, top_indices = torch.topk(class_similarity.flatten(),
+                                                    int(self.labelQuery.shape[0] / self.nQuery) - 1)
 
                 episode_classes = [episode_class] + [list(temp_prototype_dict.keys())[idx] for idx in
                                                      top_indices.tolist()]
         if episode_classes is None:
-            episode_classes = random.sample(list(temp_prototype_dict.keys()), self.nCls)
+            episode_classes = random.sample(list(temp_prototype_dict.keys()),
+                                            int((self.labelQuery.shape[0] / self.nQuery)) - 1)
             episode_classes.append(episode_class)
 
         # Add one extra because you want a query class that's not in the support list
@@ -117,7 +124,7 @@ class EpisodeDataset(data.Dataset):
             # in total nQuery+nSupport images from each class
             imgCls = np.random.choice(imgList, self.nQuery + self.nSupport, replace=False)
 
-            if i < len(episode_classes) - 1:
+            if i < self.nCls:
                 for j in range(self.nSupport):
                     img = imgCls[j]
                     imgPath = os.path.join(clsPath, img)
