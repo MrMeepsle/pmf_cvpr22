@@ -365,7 +365,7 @@ class VisionTransformer(nn.Module):
                 gn_weight = np2th(weights["gn_root/scale"]).view(-1)
                 gn_bias = np2th(weights["gn_root/bias"]).view(-1)
                 self.transformer.embeddings.hybrid_model.root.gn.weight.copy_(gn_weight)
-                self.transformer.embeddings.hybrid_model.root.gn.bias.copy_(gn_bias)
+                self.transformer.embeddings.hybrid_model.root.gn.b1.copy_(gn_bias)
 
                 for bname, block in self.transformer.embeddings.hybrid_model.body.named_children():
                     for uname, unit in block.named_children():
