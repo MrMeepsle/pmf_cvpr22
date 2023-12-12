@@ -90,23 +90,13 @@ def main(args):
 
     loss_scaler = NativeScaler() if args.fp16 else None
 
-    # optimizer = create_optimizer(args, model_without_ddp)
-    optimizer = torch.optim.SGD(
-        [p for p in model_without_ddp.parameters() if p.requires_grad],
-        args.lr,
-        momentum=args.momentum,
-        weight_decay=0,  # no weight decay for fine-tuning
-    )
-
-    lr_scheduler, _ = create_scheduler(args, optimizer)
-
     if args.mixup > 0.:
         # smoothing is handled with mixup label transform
         criterion = SoftTargetCrossEntropy()
     elif args.smoothing:
         criterion = LabelSmoothingCrossEntropy(smoothing=args.smoothing)
     else:
-        criterion = torch.nn.CrossEntropyLoss()
+        criterion = torch.nn.BCELoss()
 
     ##############################################
     # Resume training from ckpt (model, optimizer, lr_scheduler, epoch, model_ema, scaler)
@@ -117,12 +107,32 @@ def main(args):
         else:
             checkpoint = torch.load(args.resume, map_location='cpu')
 
-        model_without_ddp.load_state_dict(checkpoint['model'])
+        state_dict = model_without_ddp.state_dict()
+        pretrained_dict = {k: v for k, v in checkpoint['model'].items() if k in state_dict}
+        state_dict.update(pretrained_dict)
+        print(state_dict['b1'], state_dict['w1'], state_dict['b2'], state_dict['w2'], state_dict['b3'],
+              state_dict['w3_1'], state_dict['w3_2'])
+
+        model_without_ddp.load_state_dict(state_dict)
+
+        # optimizer = create_optimizer(args, model_without_ddp)
+        optimizer = torch.optim.SGD(
+            [p for p in model_without_ddp.parameters() if p.requires_grad],
+            args.lr,
+            momentum=args.momentum,
+            weight_decay=0,  # no weight decay for fine-tuning
+        )
+
+        lr_scheduler, _ = create_scheduler(args, optimizer)
 
         if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
-            optimizer.load_state_dict(checkpoint['optimizer'])
+            try:
+                optimizer.load_state_dict(checkpoint['optimizer'])
+            except ValueError:  # If state dict has changed size, we try to get what we can
+                pass
             lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
-            args.start_epoch = checkpoint['epoch'] + 1
+            if args.start_epoch == 0:
+                args.start_epoch = checkpoint['epoch'] + 1
             if args.model_ema:
                 utils._load_checkpoint_for_ema(model_ema, checkpoint['model_ema'])
             if 'scaler' in checkpoint:

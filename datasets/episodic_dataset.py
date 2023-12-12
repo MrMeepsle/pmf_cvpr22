@@ -31,7 +31,7 @@ class EpisodeDataset(data.Dataset):
     """
 
     def __init__(self, imgDir, nCls, nSupport, nQuery, transform, inputW, inputH, nEpisode=2000,
-                 model=None, pre_select_classes=False):
+                 model=None, pre_select_classes=False, device='cuda:0'):
         super().__init__()
 
         self.imgDir = imgDir
@@ -42,6 +42,7 @@ class EpisodeDataset(data.Dataset):
         self.nQuery = nQuery
         self.transform = transform
         self.nEpisode = nEpisode
+        self.device = device
 
         floatType = torch.FloatTensor
 
@@ -50,11 +51,11 @@ class EpisodeDataset(data.Dataset):
 
         self.labelQuery = F.one_hot(torch.repeat_interleave(torch.arange(0, nCls), nQuery, dim=0))
         # Add zeros to define classes that don't belong to any labels
-        # if len(self.clsList) < nCls * 2:
-        #     non_labels = torch.zeros(nQuery * (len(self.clsList) - nCls), nCls)
-        # else:
-        #     non_labels = torch.zeros(nQuery * nCls, nCls)
-        # self.labelQuery = torch.concat((self.labelQuery, non_labels), dim=0)
+        if len(self.clsList) < nCls * 2:
+            non_labels = torch.zeros(nQuery * (len(self.clsList) - nCls), nCls)
+        else:
+            non_labels = torch.zeros(nQuery * nCls, nCls)
+        self.labelQuery = torch.concat((self.labelQuery, non_labels), dim=0)
         self.tensorQuery = floatType(self.labelQuery.shape[0], 3, inputW, inputH)
 
         self.imgTensor = floatType(3, inputW, inputH)
@@ -93,7 +94,7 @@ class EpisodeDataset(data.Dataset):
             if len(temp_prototype_dict_1) == (len(self.prototype_dict) - 1):
                 # Only compare prototypes when prototypes are calculated
                 other_prototypes_tensor = torch.empty(size=(len(temp_prototype_dict), episode_prototype.shape[0]),
-                                                      dtype=torch.float, device='cuda:0', requires_grad=False)
+                                                      dtype=torch.float, device='cuda:1', requires_grad=False)
                 for i, key in enumerate(temp_prototype_dict.keys()):
                     other_prototypes_tensor[i] = temp_prototype_dict[key]
 
@@ -139,7 +140,7 @@ class EpisodeDataset(data.Dataset):
 
         ## Random permutation. Though this is not necessary in our approach
         permSupport = torch.randperm(self.nCls * self.nSupport)
-        permQuery = torch.randperm(len(episode_classes) * self.nQuery)
+        permQuery = torch.randperm((len(episode_classes)) * self.nQuery)
 
         return (self.tensorSupport[permSupport],
                 self.labelSupport[permSupport],

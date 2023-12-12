@@ -7,9 +7,29 @@ class ProtoNet(nn.Module):
     def __init__(self, backbone):
         super().__init__()
 
-        # bias & scale of cosine classifier
-        self.bias = nn.Parameter(torch.FloatTensor(1).fill_(0), requires_grad=True)
-        self.scale_cls = nn.Parameter(torch.FloatTensor(1).fill_(10), requires_grad=True)
+        # maybe these need a different learning rate
+
+        # bias & scale of classifier
+        #####################################################################
+        # P>M>F parameters
+        self.b1 = nn.Parameter(torch.FloatTensor(1).fill_(10), requires_grad=True)
+        self.w1 = nn.Parameter(torch.FloatTensor(1).fill_(1), requires_grad=True)
+
+        self.softmax = nn.Softmax(dim=1)
+        ####################################################################
+
+        ####################################################################
+        # ProtoProductNet parameters
+        self.b2 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
+        self.w2 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
+
+        self.b3 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
+        self.w3_1 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
+        self.w3_2 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
+
+        self.sigmoid = nn.Sigmoid()
+        self.tanh = nn.Tanh()
+        ####################################################################
 
         # backbone
         self.backbone = backbone
@@ -23,7 +43,6 @@ class ProtoNet(nn.Module):
         w = F.normalize(w, p=2, dim=w.dim() - 1, eps=1e-12)
 
         cls_scores = f @ w.transpose(1, 2)  # B, M, nC
-        cls_scores = self.scale_cls * (cls_scores + self.bias)
         return cls_scores
 
     def forward(self, supp_x, supp_y, x):
@@ -45,5 +64,14 @@ class ProtoNet(nn.Module):
         feat = self.backbone.forward(x.view(-1, C, H, W))
         feat = feat.view(B, x.shape[1], -1)  # B, nQry, d
 
-        logits = self.cos_classifier(prototypes, feat)  # B, nQry, nC
-        return logits, prototypes
+        cls_scores = self.cos_classifier(prototypes, feat)  # B, nQry, nC
+
+        softmax_logits = self.w1 * (cls_scores + self.b1)
+        softmax_probs = self.softmax(softmax_logits)
+
+        tanh_logits = self.w2 * cls_scores + self.b2
+        tanh_probs = self.tanh(tanh_logits)
+
+        probabilities = self.sigmoid(self.w3_1 * softmax_probs + self.w3_2 * tanh_probs + self.b3)
+
+        return probabilities, prototypes

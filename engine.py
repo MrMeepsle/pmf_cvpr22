@@ -119,8 +119,8 @@ def evaluate(data_loaders, model, criterion, device, seed=None, ep=None):
 
 
 def accuracy(output, labels):
-    scores = torch.nn.functional.softmax(output, dim=1)
-    predicted_labels = (scores >= 0.5)
+    # scores = torch.nn.functional.softmax(output, dim=1)
+    predicted_labels = (output >= 0.5)
     return torch.mean((predicted_labels == labels).float())
 
 

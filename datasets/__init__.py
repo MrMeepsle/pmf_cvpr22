@@ -58,7 +58,8 @@ def get_sets(args, model):
                               inputH=inputH,
                               nEpisode=args.nEpisode,
                               model=model,
-                              pre_select_classes=args.pre_select_classes)
+                              pre_select_classes=args.pre_select_classes,
+                              device=args.device)
 
     # # episodeJson is only used here
     # valSet = EpisodeJSONDataset(episodeJson,
@@ -75,7 +76,8 @@ def get_sets(args, model):
                             inputH=inputH,
                             nEpisode=args.nEpisode,
                             model=model,
-                            pre_select_classes=args.pre_select_classes)
+                            pre_select_classes=args.pre_select_classes,
+                            device=args.device)
 
     testSet = EpisodeDataset(imgDir=testDir,
                              nCls=args.nClsEpisode,
@@ -86,7 +88,8 @@ def get_sets(args, model):
                              inputH=inputH,
                              nEpisode=args.nEpisode,
                              model=model,
-                             pre_select_classes=args.pre_select_classes)
+                             pre_select_classes=args.pre_select_classes,
+                             device=args.device)
 
     return trainSet, valSet, testSet
 
