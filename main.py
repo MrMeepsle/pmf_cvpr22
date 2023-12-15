@@ -98,6 +98,17 @@ def main(args):
     else:
         criterion = torch.nn.BCELoss()
 
+    # optimizer = create_optimizer(args, model_without_ddp)
+    optimizer = torch.optim.SGD(
+        [{'params': [model_without_ddp.b1, model_without_ddp.b2, model_without_ddp.b3, model_without_ddp.w1,
+                     model_without_ddp.w2, model_without_ddp.w3]},
+         {'params': [p for p in model_without_ddp.backbone.parameters() if p.requires_grad],
+          'lr': args.lr}]
+        , lr=args.clf_lr, momentum=args.momentum, weight_decay=0,  # no weight decay for fine-tuning
+    )
+
+    lr_scheduler, _ = create_scheduler(args, optimizer)
+
     ##############################################
     # Resume training from ckpt (model, optimizer, lr_scheduler, epoch, model_ema, scaler)
     if args.resume:
@@ -111,19 +122,9 @@ def main(args):
         pretrained_dict = {k: v for k, v in checkpoint['model'].items() if k in state_dict}
         state_dict.update(pretrained_dict)
         print(state_dict['b1'], state_dict['w1'], state_dict['b2'], state_dict['w2'], state_dict['b3'],
-              state_dict['w3_1'], state_dict['w3_2'])
+              state_dict['w3'])
 
         model_without_ddp.load_state_dict(state_dict)
-
-        # optimizer = create_optimizer(args, model_without_ddp)
-        optimizer = torch.optim.SGD(
-            [p for p in model_without_ddp.parameters() if p.requires_grad],
-            args.lr,
-            momentum=args.momentum,
-            weight_decay=0,  # no weight decay for fine-tuning
-        )
-
-        lr_scheduler, _ = create_scheduler(args, optimizer)
 
         if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
             try:

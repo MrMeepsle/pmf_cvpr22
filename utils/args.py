@@ -155,6 +155,8 @@ def get_args_parser():
                         help='LR scheduler (default: "cosine"')
     parser.add_argument('--lr', type=float, default=5e-5, metavar='LR',
                         help='learning rate (default: 5e-4)')
+    parser.add_argument('--clf_lr', type=float, default=5e-3, metavar='CLF_LR',
+                        help='clf learning rate (default: 5e-3)')
     parser.add_argument('--lr-noise', type=float, nargs='+', default=None, metavar='pct, pct',
                         help='learning rate noise on/off epoch percentages')
     parser.add_argument('--lr-noise-pct', type=float, default=0.67, metavar='PERCENT',

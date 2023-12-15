@@ -20,12 +20,11 @@ class ProtoNet(nn.Module):
 
         ####################################################################
         # ProtoProductNet parameters
-        self.b2 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
-        self.w2 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
+        self.b2 = nn.Parameter(torch.FloatTensor(1).fill_(-8), requires_grad=True)
+        self.w2 = nn.Parameter(torch.FloatTensor(1).fill_(10), requires_grad=True)
 
-        self.b3 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
-        self.w3_1 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
-        self.w3_2 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
+        self.b3 = nn.Parameter(torch.FloatTensor(1).fill_(-1.1181), requires_grad=True)
+        self.w3 = nn.Parameter(torch.FloatTensor(1).fill_(1.7963), requires_grad=True)
 
         self.sigmoid = nn.Sigmoid()
         self.tanh = nn.Tanh()
@@ -72,6 +71,6 @@ class ProtoNet(nn.Module):
         tanh_logits = self.w2 * cls_scores + self.b2
         tanh_probs = self.tanh(tanh_logits)
 
-        probabilities = self.sigmoid(self.w3_1 * softmax_probs + self.w3_2 * tanh_probs + self.b3)
+        probabilities = self.sigmoid(self.w3 * (softmax_probs + tanh_probs) + self.b3)
 
         return probabilities, prototypes

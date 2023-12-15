@@ -31,6 +31,7 @@ def train_one_epoch(data_loader: Iterable,
 
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
+    metric_logger.add_meter('clf_lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     metric_logger.add_meter('n_ways', utils.SmoothedValue(window_size=1, fmt='{value:d}'))
     metric_logger.add_meter('n_imgs', utils.SmoothedValue(window_size=1, fmt='{value:d}'))
     header = 'Epoch: [{}]'.format(epoch)
@@ -75,9 +76,11 @@ def train_one_epoch(data_loader: Iterable,
         if model_ema is not None:
             model_ema.update(model)
 
-        lr = optimizer.param_groups[0]["lr"]
+        lr = optimizer.param_groups[1]["lr"]
+        clf_lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(loss=loss_value)
         metric_logger.update(lr=lr)
+        metric_logger.update(clf_lr=clf_lr)
         metric_logger.update(n_ways=SupportLabel.max() + 1)
         metric_logger.update(n_imgs=SupportTensor.shape[1] + x.shape[1])
 
@@ -85,6 +88,7 @@ def train_one_epoch(data_loader: Iterable,
         if utils.is_main_process() and global_step % print_freq == 0:
             writer.add_scalar("train/loss", scalar_value=loss_value, global_step=global_step)
             writer.add_scalar("train/lr", scalar_value=lr, global_step=global_step)
+            writer.add_scalar("train/clf_lr", scalar_value=clf_lr, global_step=global_step)
 
         global_step += 1
 
