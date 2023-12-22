@@ -11,6 +11,8 @@ import json
 from torchvision import transforms
 from torchvision.datasets import ImageFolder
 
+# torch.multiprocessing.set_start_method('spawn')
+
 
 def PilLoaderRGB(imgPath):
     return Image.open(imgPath).convert('RGB')
@@ -36,6 +38,9 @@ class EpisodeDataset(data.Dataset):
 
         self.imgDir = imgDir
         self.clsList = os.listdir(imgDir)
+        lenlist = [len(os.listdir(os.path.join(self.imgDir, cls))) for cls in self.clsList]
+        self.clsList = [class_ for class_, len in zip(self.clsList, lenlist) if len >= nQuery + nSupport]
+        print("total classes:", len(self.clsList))
         self.prototype_dict = {class_: None for class_ in self.clsList}
         self.nCls = nCls
         self.nSupport = nSupport
@@ -89,6 +94,7 @@ class EpisodeDataset(data.Dataset):
         episode_class = random.choice(list(temp_prototype_dict.keys()))
         episode_prototype = temp_prototype_dict.pop(episode_class)
         episode_classes = None
+
         if episode_prototype is not None and self.pre_select_classes is True:
             temp_prototype_dict_1 = {k: v for k, v in temp_prototype_dict.items() if v is not None}
             if len(temp_prototype_dict_1) == (len(self.prototype_dict) - 1):
@@ -117,7 +123,6 @@ class EpisodeDataset(data.Dataset):
                                             int((self.labelQuery.shape[0] / self.nQuery)) - 1)
             episode_classes.append(episode_class)
 
-        # Add one extra because you want a query class that's not in the support list
         for i, cls in enumerate(episode_classes):
             clsPath = os.path.join(self.imgDir, cls)
             imgList = os.listdir(clsPath)
@@ -140,7 +145,8 @@ class EpisodeDataset(data.Dataset):
 
         ## Random permutation. Though this is not necessary in our approach
         permSupport = torch.randperm(self.nCls * self.nSupport)
-        permQuery = torch.randperm((len(episode_classes)) * self.nQuery)
+        # Select only nCls*nQuery classes eventually, so could in theory be all non_classes
+        permQuery = torch.randperm((len(episode_classes)) * self.nQuery)#[:self.nCls*self.nQuery]
 
         return (self.tensorSupport[permSupport],
                 self.labelSupport[permSupport],

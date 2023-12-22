@@ -99,13 +99,21 @@ def main(args):
         criterion = torch.nn.BCELoss()
 
     # optimizer = create_optimizer(args, model_without_ddp)
-    optimizer = torch.optim.SGD(
-        [{'params': [model_without_ddp.b1, model_without_ddp.b2, model_without_ddp.b3, model_without_ddp.w1,
-                     model_without_ddp.w2, model_without_ddp.w3]},
-         {'params': [p for p in model_without_ddp.backbone.parameters() if p.requires_grad],
-          'lr': args.lr}]
-        , lr=args.clf_lr, momentum=args.momentum, weight_decay=0,  # no weight decay for fine-tuning
-    )
+    try:
+        optimizer = torch.optim.SGD(
+            [{'params': [model_without_ddp.b1, model_without_ddp.b2, model_without_ddp.b3, model_without_ddp.w1,
+                         model_without_ddp.w2, model_without_ddp.w3]},
+             {'params': [p for p in model_without_ddp.backbone.parameters() if p.requires_grad],
+              'lr': args.lr}]
+            , lr=args.clf_lr, momentum=args.momentum, weight_decay=0,  # no weight decay for fine-tuning
+        )
+    except KeyError:
+        optimizer = torch.optim.SGD(
+            [{'params': [model_without_ddp.b1, model_without_ddp.w1]},
+             {'params': [p for p in model_without_ddp.backbone.parameters() if p.requires_grad],
+              'lr': args.lr}]
+            , lr=args.clf_lr, momentum=args.momentum, weight_decay=0,  # no weight decay for fine-tuning
+        )
 
     lr_scheduler, _ = create_scheduler(args, optimizer)
 
@@ -121,17 +129,21 @@ def main(args):
         state_dict = model_without_ddp.state_dict()
         pretrained_dict = {k: v for k, v in checkpoint['model'].items() if k in state_dict}
         state_dict.update(pretrained_dict)
-        print(state_dict['b1'], state_dict['w1'], state_dict['b2'], state_dict['w2'], state_dict['b3'],
-              state_dict['w3'])
+        print("epoch is:", checkpoint['epoch'])
+        try:
+            print(state_dict['b1'], state_dict['w1'], state_dict['b2'], state_dict['w2'], state_dict['b3'],
+                  state_dict['w3'])
+        except KeyError:
+            print(state_dict['b1'], state_dict['w1'])
 
         model_without_ddp.load_state_dict(state_dict)
 
         if not args.eval and 'optimizer' in checkpoint and 'lr_scheduler' in checkpoint and 'epoch' in checkpoint:
-            try:
-                optimizer.load_state_dict(checkpoint['optimizer'])
-            except ValueError:  # If state dict has changed size, we try to get what we can
-                pass
-            lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
+            # try:
+            #     optimizer.load_state_dict(checkpoint['optimizer'])
+            # except ValueError:  # If state dict has changed size, we try to get what we can
+            #     pass
+            # lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
             if args.start_epoch == 0:
                 args.start_epoch = checkpoint['epoch'] + 1
             if args.model_ema:
@@ -143,15 +155,16 @@ def main(args):
 
     ##############################################
     # Test
-    test_stats = evaluate(data_loader_val, model, criterion, device, args.seed + 10000)
-    print(f"Accuracy of the network on dataset_val: {test_stats['accuracy']:.1f}%")
-    if args.output_dir and utils.is_main_process():
-        test_stats['epoch'] = -1
-        with (output_dir / "log.txt").open("a") as f:
-            f.write(json.dumps(test_stats) + "\n")
-
-    if args.eval:
-        return
+    # test_stats = evaluate(data_loader_val, model, criterion, device, args.seed + 10000)
+    # print(f"Accuracy of the network on dataset_val: {test_stats['accuracy']:.1f}%")
+    # if args.output_dir and utils.is_main_process():
+    #     test_stats['epoch'] = -1
+    #     with (output_dir / "log.txt").open("a") as f:
+    #         f.write(json.dumps(test_stats) + "\n")
+    #
+    # if args.eval:
+    #     return
+    test_stats = {'accuracy': 0}
 
     ##############################################
     # Training
@@ -176,12 +189,12 @@ def main(args):
         lr_scheduler.step(epoch)
 
         test_stats = evaluate(data_loader_val, model, criterion, device, args.seed + 10000)
-
+        #
         log_stats = {**{f'train_{k}': v for k, v in train_stats.items()},
                      **{f'val_{k}': v for k, v in test_stats.items()},
                      'epoch': epoch,
                      'n_parameters': n_parameters}
-
+        #
         for k, v in train_stats.items():
             writer.add_scalar(f'train/{k}', v, epoch)
         for k, v in test_stats.items():
@@ -189,7 +202,7 @@ def main(args):
         writer.flush()
 
         if args.output_dir:
-            checkpoint_paths = [output_dir / 'checkpoint.pth', output_dir / 'best.pth']
+            checkpoint_paths = [output_dir / 'checkpoint.pth', output_dir / f'epoch_{epoch}.pth']
             for checkpoint_path in checkpoint_paths:
                 state_dict = {
                     'model': model_without_ddp.state_dict(),
@@ -202,8 +215,9 @@ def main(args):
                 if loss_scaler is not None:
                     state_dict['scalar'] = loss_scaler.state_dict()
                 utils.save_on_master(state_dict, checkpoint_path)
+                print(f"saving model... at {checkpoint_path}")
 
-                if test_stats['accuracy'] <= max_accuracy:
+                if test_stats['accuracy'] < max_accuracy:
                     break  # do not save best.pth
 
         print(f"Accuracy of the network on dataset_val: {test_stats['accuracy']:.1f}%")
@@ -226,6 +240,8 @@ def main(args):
 
 
 if __name__ == '__main__':
+    # torch.multiprocessing.set_start_method('spawn')
+
     parser = get_args_parser()
     args = parser.parse_args()
 

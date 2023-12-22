@@ -12,22 +12,30 @@ class ProtoNet(nn.Module):
         # bias & scale of classifier
         #####################################################################
         # P>M>F parameters
-        self.b1 = nn.Parameter(torch.FloatTensor(1).fill_(10), requires_grad=True)
-        self.w1 = nn.Parameter(torch.FloatTensor(1).fill_(1), requires_grad=True)
+        self.b1 = nn.Parameter(torch.FloatTensor(1).fill_(6), requires_grad=True)
+        self.w1 = nn.Parameter(torch.FloatTensor(1).fill_(9.3), requires_grad=True)
 
         self.softmax = nn.Softmax(dim=1)
         ####################################################################
 
         ####################################################################
         # ProtoProductNet parameters
-        self.b2 = nn.Parameter(torch.FloatTensor(1).fill_(-8), requires_grad=True)
-        self.w2 = nn.Parameter(torch.FloatTensor(1).fill_(10), requires_grad=True)
+        self.b2 = nn.Parameter(torch.FloatTensor(1).fill_(-1.6), requires_grad=True)
+        self.w2 = nn.Parameter(torch.FloatTensor(1).fill_(10.3), requires_grad=True)
 
-        self.b3 = nn.Parameter(torch.FloatTensor(1).fill_(-1.1181), requires_grad=True)
-        self.w3 = nn.Parameter(torch.FloatTensor(1).fill_(1.7963), requires_grad=True)
+        self.b3 = nn.Parameter(torch.FloatTensor(1).fill_(-4.5), requires_grad=True)
+        self.w3 = nn.Parameter(torch.FloatTensor(1).fill_(10.7), requires_grad=True)
 
         self.sigmoid = nn.Sigmoid()
-        self.tanh = nn.Tanh()
+        # self.tanh = nn.Tanh()
+        ####################################################################
+
+        ####################################################################
+        # # P>M>F parameters
+        # self.b1 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
+        # self.w1 = nn.Parameter(torch.FloatTensor(1).random_(10), requires_grad=True)
+        #
+        # self.sigmoid = nn.Sigmoid()
         ####################################################################
 
         # backbone
@@ -65,12 +73,18 @@ class ProtoNet(nn.Module):
 
         cls_scores = self.cos_classifier(prototypes, feat)  # B, nQry, nC
 
-        softmax_logits = self.w1 * (cls_scores + self.b1)
-        softmax_probs = self.softmax(softmax_logits)
+        # Softmax_probs don't say anything about class or not, so we have to multiply by cls_scores
+        # This part will make sure that the relationship between predictions is taken into account
+        # Basically this part is free to abuse the most likeliest and only predict for that
+        # But actually the real distance matters. Select the closest to push classes apart
+        prediction_probs = self.softmax(self.w1 * (cls_scores + self.b1))
+        prediction_probs = self.sigmoid(self.w2 * prediction_probs * cls_scores + self.b2)
 
-        tanh_logits = self.w2 * cls_scores + self.b2
-        tanh_probs = self.tanh(tanh_logits)
+        # Sigmoid
+        # prediction_probs = self.sigmoid(self.w1 * cls_scores + self.b1)
+        # prediction_probs = self.sigmoid(self.w2 * cls_scores + self.b2)
 
-        probabilities = self.sigmoid(self.w3 * (softmax_probs + tanh_probs) + self.b3)
+        # Softmax
+        # prediction_probs = self.softmax(self.w1 * (cls_scores + self.b1))
 
-        return probabilities, prototypes
+        return prediction_probs, prototypes

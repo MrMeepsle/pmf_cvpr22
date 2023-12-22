@@ -89,7 +89,8 @@ def train_one_epoch(data_loader: Iterable,
             writer.add_scalar("train/loss", scalar_value=loss_value, global_step=global_step)
             writer.add_scalar("train/lr", scalar_value=lr, global_step=global_step)
             writer.add_scalar("train/clf_lr", scalar_value=clf_lr, global_step=global_step)
-
+            for i, parameter in enumerate(optimizer.param_groups[0]["params"]):
+                writer.add_scalar(f"train/param_{i}", scalar_value=parameter.item(), global_step=global_step)
         global_step += 1
 
     # gather the stats from all processes

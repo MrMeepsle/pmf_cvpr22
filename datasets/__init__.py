@@ -175,10 +175,11 @@ def get_loaders(args, num_tasks, global_rank, model):
         dataset_train, sampler=sampler_train,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        pin_memory=args.pin_mem,
+        pin_memory=False,
         drop_last=True,
         worker_init_fn=worker_init_fn,
-        generator=generator
+        generator=generator,
+        persistent_workers=False
     )
 
     print("data loader train", data_loader_train.__dict__)
